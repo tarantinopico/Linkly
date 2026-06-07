@@ -10,6 +10,9 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +35,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import com.example.ui.utils.premiumBackground
 import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
 import java.net.URL
@@ -213,25 +217,50 @@ fun HomeScreen(
         },
         bottomBar = {
             NavigationBar(
-                containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
+                containerColor = Color.Transparent,
+                modifier = Modifier
+                    .background(com.example.ui.theme.PremiumBackgroundBottom.copy(alpha = 0.95f))
+                    .drawBehind { 
+                        drawLine(
+                            Color(0x22FFFFFF), 
+                            androidx.compose.ui.geometry.Offset(0f, 0f), 
+                            androidx.compose.ui.geometry.Offset(size.width, 0f), 
+                            1f
+                        )
+                    }
             ) {
                 NavigationBarItem(
                     selected = currentTab == 0,
                     onClick = { currentTab = 0 },
                     icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
-                    label = { Text("Přehled") }
+                    label = { Text("Přehled") },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = com.example.ui.theme.MutedPurple.copy(alpha = 0.2f),
+                        selectedIconColor = com.example.ui.theme.MutedPurple,
+                        selectedTextColor = com.example.ui.theme.MutedPurple
+                    )
                 )
                 NavigationBarItem(
                     selected = currentTab == 1,
                     onClick = { currentTab = 1 },
                     icon = { Icon(Icons.Default.List, contentDescription = null) },
-                    label = { Text("Odkazy") }
+                    label = { Text("Odkazy") },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = com.example.ui.theme.MutedPurple.copy(alpha = 0.2f),
+                        selectedIconColor = com.example.ui.theme.MutedPurple,
+                        selectedTextColor = com.example.ui.theme.MutedPurple
+                    )
                 )
                 NavigationBarItem(
                     selected = currentTab == 2,
                     onClick = { currentTab = 2 },
                     icon = { Icon(Icons.Default.Category, contentDescription = null) },
-                    label = { Text("Kategorie") }
+                    label = { Text("Kategorie") },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = com.example.ui.theme.MutedPurple.copy(alpha = 0.2f),
+                        selectedIconColor = com.example.ui.theme.MutedPurple,
+                        selectedTextColor = com.example.ui.theme.MutedPurple
+                    )
                 )
             }
         },
@@ -239,14 +268,24 @@ fun HomeScreen(
             if (currentTab != 2) {
                 FloatingActionButton(
                     onClick = { showQuickAddSheet = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = Color.Transparent,
+                    contentColor = com.example.ui.theme.TextAccent,
+                    elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    modifier = Modifier
+                        .background(com.example.ui.theme.AccentGradient, shape = androidx.compose.foundation.shape.CircleShape)
+                        .shadow(16.dp, androidx.compose.foundation.shape.CircleShape, spotColor = com.example.ui.theme.MutedPurpleDark)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Link")
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = Color.Transparent,
+        modifier = Modifier.background(
+            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                colors = listOf(com.example.ui.theme.PremiumBackgroundTop, com.example.ui.theme.PremiumBackgroundBottom)
+            )
+        )
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             Column(modifier = Modifier.fillMaxSize()) {

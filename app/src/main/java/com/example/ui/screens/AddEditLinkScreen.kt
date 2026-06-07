@@ -35,6 +35,8 @@ import com.example.data.local.entity.Tag
 import com.example.ui.utils.toColor
 import com.example.ui.utils.shimmerEffect
 
+import com.example.ui.utils.premiumBackground
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddEditLinkScreen(
@@ -71,7 +73,7 @@ fun AddEditLinkScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (linkId == -1) "Přidat odkaz" else "Upravit odkaz") },
+                title = { Text(if (linkId == -1) "Přidat odkaz" else "Upravit odkaz", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -83,12 +85,15 @@ fun AddEditLinkScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    titleContentColor = com.example.ui.theme.TextPrimary,
+                    actionIconContentColor = com.example.ui.theme.TextPrimary,
+                    navigationIconContentColor = com.example.ui.theme.TextPrimary
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        modifier = Modifier.premiumBackground()
     ) { paddingValues ->
         Column(
             modifier = Modifier

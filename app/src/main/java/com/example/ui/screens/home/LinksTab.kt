@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -33,8 +34,39 @@ fun LinksTab(
     onShowSnackbar: (String) -> Unit
 ) {
     if (links.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Žádné odkazy neodpovídají filtrům", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp), 
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(com.example.ui.theme.CardSurfaceLight),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Bookmarks,
+                    contentDescription = null,
+                    tint = com.example.ui.theme.TextSecondary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                "Zatím tu nic není",
+                style = MaterialTheme.typography.titleLarge,
+                color = com.example.ui.theme.TextPrimary,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "Přidejte si zajímavé odkazy pomocí tlačítka +",
+                style = MaterialTheme.typography.bodyMedium,
+                color = com.example.ui.theme.TextSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     } else {
         LazyColumn(

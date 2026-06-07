@@ -38,6 +38,8 @@ import com.example.LinklyApplication
 import com.example.ui.utils.getRelativeTime
 import java.net.URL
 
+import com.example.ui.utils.premiumCardStyle
+
 @Composable
 fun LinkCard(
     linkWithDetails: LinkWithTagsAndCategory,
@@ -45,11 +47,11 @@ fun LinkCard(
     isSelectionMode: Boolean,
     onLongClick: () -> Unit,
     onClick: () -> Unit,
-    onEditClick: () -> Unit,
+    onEditClick: () -> Unit = {},
     onToggleFavorite: () -> Unit,
     onToggleRead: () -> Unit,
-    onDeleteClick: () -> Unit,
-    onShowSnackbar: (String) -> Unit
+    onDeleteClick: () -> Unit = {},
+    onShowSnackbar: (String) -> Unit = {}
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -57,19 +59,17 @@ fun LinkCard(
     val haptic = LocalHapticFeedback.current
 
     val containerColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) 
-                      else MaterialTheme.colorScheme.surfaceVariant,
+        targetValue = if (isSelected) com.example.ui.theme.MutedPurple.copy(alpha = 0.2f) 
+                      else com.example.ui.theme.CardSurfaceDark,
         animationSpec = tween(200)
     )
 
-    ElevatedCard(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp, pressedElevation = 4.dp),
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .pointerInput(Unit) {
+            .padding(vertical = 6.dp)
+            .premiumCardStyle(containerColor = containerColor, shadowElevation = 12.dp)
+            .pointerInput(isSelected) {
                 detectTapGestures(
                     onLongPress = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -89,14 +89,14 @@ fun LinkCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(com.example.ui.theme.CardSurfaceLight),
                 contentAlignment = Alignment.Center
             ) {
                 val imageUrl = linkWithDetails.link.imageUrl
@@ -115,7 +115,7 @@ fun LinkCard(
                             Icon(
                                 imageVector = Icons.Default.Language,
                                 contentDescription = "Error",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = com.example.ui.theme.TextSecondary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -124,13 +124,13 @@ fun LinkCard(
                     Icon(
                         imageVector = Icons.Default.Language,
                         contentDescription = "Placeholder",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = com.example.ui.theme.TextSecondary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             Column(
                 modifier = Modifier.weight(1f)
@@ -141,50 +141,51 @@ fun LinkCard(
                             modifier = Modifier
                                 .size(6.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
+                                .background(com.example.ui.theme.MutedPurple)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text(
                         text = linkWithDetails.link.title.takeIf { it.isNotEmpty() } ?: linkWithDetails.link.url,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = if (!linkWithDetails.link.isRead) FontWeight.Bold else FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = com.example.ui.theme.TextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
 
                 Row(
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     linkWithDetails.category?.let { category ->
-                        val catColor = category.colorHex.toColor(MaterialTheme.colorScheme.primary)
+                        val catColor = category.colorHex.toColor(com.example.ui.theme.MutedPurple)
                         Surface(
-                            color = catColor.copy(alpha = 0.2f),
+                            color = catColor.copy(alpha = 0.15f),
                             shape = CircleShape
                         ) {
                             Box(modifier = Modifier.size(8.dp))
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = category.name,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium,
                             color = catColor,
+                            fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
                     }
                     
                     if (linkWithDetails.tags.isNotEmpty()) {
                         linkWithDetails.tags.take(2).forEach { tag ->
                             Text(
                                 text = "#${tag.name}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(end = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = com.example.ui.theme.TextSecondary,
+                                modifier = Modifier.padding(end = 6.dp),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -192,8 +193,8 @@ fun LinkCard(
                         if (linkWithDetails.tags.size > 2) {
                             Text(
                                 text = "+${linkWithDetails.tags.size - 2}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.labelMedium,
+                                color = com.example.ui.theme.TextSecondary
                             )
                         }
                     }
@@ -203,7 +204,7 @@ fun LinkCard(
                     Text(
                         text = getRelativeTime(linkWithDetails.link.addedAt),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = com.example.ui.theme.TextSecondary
                     )
                 }
             }
@@ -215,7 +216,7 @@ fun LinkCard(
                     Icon(
                         Icons.Default.CheckCircle,
                         contentDescription = "Selected",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = com.example.ui.theme.MutedPurple,
                         modifier = Modifier.size(24.dp)
                     )
                 } else if (!isSelectionMode) {
@@ -230,8 +231,8 @@ fun LinkCard(
                         Icon(
                             Icons.Default.ContentCopy,
                             contentDescription = "Copy Link",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
+                            tint = com.example.ui.theme.TextSecondary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     Box {
@@ -243,13 +244,14 @@ fun LinkCard(
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = "Menu",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = com.example.ui.theme.TextSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
                         DropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.background(com.example.ui.theme.CardSurfaceLight)
                         ) {
                             DropdownMenuItem(
                                 text = { Text("Otevřít") },
