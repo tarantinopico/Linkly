@@ -166,6 +166,7 @@ fun CategoryEditorDialog(
     var name by remember { mutableStateOf(category.name) }
     var colorHex by remember { mutableStateOf(category.colorHex) }
     var iconName by remember { mutableStateOf(category.iconName) }
+    var isAutoTaggingEnabled by remember { mutableStateOf(category.isAutoTaggingEnabled) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -185,6 +186,21 @@ fun CategoryEditorDialog(
                 Text("Barva", style = MaterialTheme.typography.labelMedium)
                 ColorPickerGrid(selectedColorHex = colorHex, onColorSelected = { colorHex = it })
                 
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { isAutoTaggingEnabled = !isAutoTaggingEnabled }.padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Auto-tagování podle domény", style = MaterialTheme.typography.bodyMedium)
+                        Text("Přiřadit tagy z odkazů uložených zde.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = isAutoTaggingEnabled,
+                        onCheckedChange = { isAutoTaggingEnabled = it }
+                    )
+                }
+
                 // Prieview
                 Surface(
                     color = colorHex.toColor().copy(alpha = 0.2f),
@@ -208,7 +224,7 @@ fun CategoryEditorDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(category.copy(name = name.trim(), colorHex = colorHex, iconName = iconName)) },
+                onClick = { onSave(category.copy(name = name.trim(), colorHex = colorHex, iconName = iconName, isAutoTaggingEnabled = isAutoTaggingEnabled)) },
                 enabled = name.isNotBlank()
             ) {
                 Text("Uložit")

@@ -281,7 +281,30 @@ class HomeViewModel(
                     )
                 }
 
-                repository.insertLink(result)
+                val tagIds = mutableListOf<Int>()
+                val globalEnabled = appSettings?.isAutoTaggingEnabled?.value ?: true
+                if (globalEnabled) {
+                    try {
+                        val host = URL(validUrl).host.lowercase()
+                        val rules = repository.allAutoTagRules.firstOrNull() ?: emptyList()
+                        val matchedRule = rules.find { host.contains(it.domain.lowercase()) }
+                        if (matchedRule != null) {
+                            val tagName = matchedRule.tagName
+                            var tag = repository.getTagByName(tagName)
+                            if (tag == null) {
+                                val colors = listOf("#EF5350", "#EC407A", "#AB47BC", "#7E57C2", "#5C6BC0", "#42A5F5", "#26A69A", "#66BB6A", "#FFA726", "#FF7043")
+                                val newTag = com.example.data.local.entity.Tag(name = tagName, colorHex = colors.random())
+                                val id = repository.insertTag(newTag)
+                                tag = newTag.copy(id = id.toInt())
+                            }
+                            tagIds.add(tag.id)
+                        }
+                    } catch (e: Exception) {
+                        // ignore
+                    }
+                }
+
+                repository.insertLink(result, tagIds)
                 onResult(true, null)
             } catch (e: Exception) {
                 onResult(false, "Přidání selhalo: ${e.message}")

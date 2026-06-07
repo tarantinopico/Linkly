@@ -62,11 +62,13 @@ fun LinkCard(
         animationSpec = tween(200)
     )
 
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+    ElevatedCard(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp, pressedElevation = 4.dp),
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = {
@@ -87,13 +89,13 @@ fun LinkCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp) // Smaller, premium
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
             ) {

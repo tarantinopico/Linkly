@@ -16,6 +16,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,7 +43,7 @@ fun SettingsScreen(
     val backupRestoreManager = remember { BackupRestoreManager(context, application.repository) }
     
     val viewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModel.Factory(backupRestoreManager)
+        factory = SettingsViewModel.Factory(backupRestoreManager, application.repository)
     )
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -122,6 +124,8 @@ fun SettingsScreen(
 
                 val appSettings = application.appSettings
                 val useInternalBrowser by appSettings.useInternalBrowser.collectAsStateWithLifecycle()
+                val isAutoTaggingEnabled by appSettings.isAutoTaggingEnabled.collectAsStateWithLifecycle()
+                var showAutoTaggingRules by remember { mutableStateOf(false) }
 
                 ListItem(
                     headlineContent = { Text("Vestavěný prohlížeč") },
@@ -136,6 +140,98 @@ fun SettingsScreen(
                     modifier = Modifier.clickable { appSettings.setUseInternalBrowser(!useInternalBrowser) },
                     colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background)
                 )
+
+                HorizontalDivider()
+
+                ListItem(
+                    headlineContent = { Text("Automatické tagování") },
+                    supportingContent = { Text("Přiřadit tagy podle pravidel (globálně)") },
+                    leadingContent = { Icon(Icons.Default.Label, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailingContent = {
+                        Switch(
+                            checked = isAutoTaggingEnabled,
+                            onCheckedChange = { appSettings.setAutoTaggingEnabled(it) }
+                        )
+                    },
+                    modifier = Modifier.clickable { appSettings.setAutoTaggingEnabled(!isAutoTaggingEnabled) },
+                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background)
+                )
+
+                if (isAutoTaggingEnabled) {
+                    ListItem(
+                        headlineContent = { Text("Správa pravidel pro domény") },
+                        supportingContent = { Text("Nastavte, jaké tagy se mají přiřadit ke konkrétním webům.") },
+                        modifier = Modifier.clickable { showAutoTaggingRules = true }.padding(start = 56.dp),
+                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background)
+                    )
+                }
+
+                if (showAutoTaggingRules) {
+                    val rules by viewModel.allAutoTagRules.collectAsStateWithLifecycle()
+                    var newDomain by remember { mutableStateOf("") }
+                    var newTag by remember { mutableStateOf("") }
+                    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+                    ModalBottomSheet(
+                        onDismissRequest = { showAutoTaggingRules = false },
+                        sheetState = sheetState,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        dragHandle = { BottomSheetDefaults.DragHandle() }
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp).imePadding()) {
+                            Text("Pravidla tagování", style = MaterialTheme.typography.titleLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            Spacer(Modifier.height(16.dp))
+                            
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedTextField(
+                                    value = newDomain,
+                                    onValueChange = { newDomain = it },
+                                    label = { Text("Doména (např. youtube.com)") },
+                                    modifier = Modifier.weight(1.5f),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = newTag,
+                                    onValueChange = { newTag = it },
+                                    label = { Text("Tag") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    viewModel.addAutoTagRule(newDomain, newTag)
+                                    newDomain = ""
+                                    newTag = ""
+                                },
+                                modifier = Modifier.align(Alignment.End),
+                                enabled = newDomain.isNotBlank() && newTag.isNotBlank()
+                            ) {
+                                Text("Přidat pravidlo")
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                            HorizontalDivider()
+                            
+                            androidx.compose.foundation.lazy.LazyColumn(
+                                modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                            ) {
+                                items(rules, key = { it.id }) { rule ->
+                                    ListItem(
+                                        headlineContent = { Text(rule.domain, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) },
+                                        supportingContent = { Text("Tag: ${rule.tagName}", color = MaterialTheme.colorScheme.primary) },
+                                        trailingContent = {
+                                            IconButton(onClick = { viewModel.deleteAutoTagRule(rule) }) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Smazat")
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
 
                 HorizontalDivider()
                 

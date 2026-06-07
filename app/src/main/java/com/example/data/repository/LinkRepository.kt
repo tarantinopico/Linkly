@@ -1,9 +1,11 @@
 package com.example.data.repository
 
+import com.example.data.local.dao.AutoTagRuleDao
 import com.example.data.local.dao.CategoryDao
 import com.example.data.local.dao.CategoryWithCount
 import com.example.data.local.dao.LinkDao
 import com.example.data.local.dao.TagDao
+import com.example.data.local.entity.AutoTagRule
 import com.example.data.local.entity.Category
 import com.example.data.local.entity.Link
 import com.example.data.local.entity.LinkTagCrossRef
@@ -14,7 +16,8 @@ import kotlinx.coroutines.flow.Flow
 class LinkRepository(
     private val linkDao: LinkDao,
     private val categoryDao: CategoryDao,
-    private val tagDao: TagDao
+    private val tagDao: TagDao,
+    private val autoTagRuleDao: AutoTagRuleDao
 ) {
     // ---- Backup & Restore ----
     data class RawBackupData(
@@ -121,5 +124,18 @@ class LinkRepository(
     
     suspend fun deleteTag(tag: Tag) {
         tagDao.deleteTag(tag)
+    }
+
+    suspend fun getCategoryById(id: Int): Category? = categoryDao.getAllCategoriesList().find { it.id == id }
+
+    // Auto Tag Rules
+    val allAutoTagRules: Flow<List<AutoTagRule>> = autoTagRuleDao.getAllRules()
+
+    suspend fun insertAutoTagRule(rule: AutoTagRule) {
+        autoTagRuleDao.insertRule(rule)
+    }
+
+    suspend fun deleteAutoTagRule(rule: AutoTagRule) {
+        autoTagRuleDao.deleteRule(rule)
     }
 }

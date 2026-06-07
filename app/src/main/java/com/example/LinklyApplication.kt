@@ -10,7 +10,7 @@ import com.example.utils.AppSettingsManager
 class LinklyApplication : Application() {
     val database by lazy { LinklyDatabase.getDatabase(this) }
     val repository by lazy { 
-        LinkRepository(database.linkDao(), database.categoryDao(), database.tagDao()) 
+        LinkRepository(database.linkDao(), database.categoryDao(), database.tagDao(), database.autoTagRuleDao()) 
     }
     val themeManager by lazy { ThemeManager(this) }
     val appSettings by lazy { AppSettingsManager(this) }

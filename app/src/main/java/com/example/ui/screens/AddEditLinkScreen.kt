@@ -44,7 +44,7 @@ fun AddEditLinkScreen(
 ) {
     val application = LocalContext.current.applicationContext as LinklyApplication
     val viewModel: AddEditLinkViewModel = viewModel(
-        factory = AddEditLinkViewModel.Factory(application.repository, linkId, sharedUrl)
+        factory = AddEditLinkViewModel.Factory(application.repository, linkId, sharedUrl, application.appSettings)
     )
 
     val url by viewModel.url.collectAsStateWithLifecycle()

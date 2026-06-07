@@ -31,4 +31,12 @@ class AppSettingsManager(context: Context) {
         prefs.edit().putString("last_sort_order", sortOrder).apply()
         _lastSortOrder.value = sortOrder
     }
+
+    private val _isAutoTaggingEnabled = MutableStateFlow(prefs.getBoolean("is_auto_tagging_enabled", true))
+    val isAutoTaggingEnabled: StateFlow<Boolean> = _isAutoTaggingEnabled.asStateFlow()
+
+    fun setAutoTaggingEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("is_auto_tagging_enabled", enabled).apply()
+        _isAutoTaggingEnabled.value = enabled
+    }
 }

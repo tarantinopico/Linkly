@@ -1,5 +1,6 @@
 package com.example.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -9,5 +10,6 @@ data class Category(
     val name: String,
     val colorHex: String,
     val iconName: String,
-    val sortOrder: Int
+    val sortOrder: Int,
+    @ColumnInfo(defaultValue = "1") val isAutoTaggingEnabled: Boolean = true
 )

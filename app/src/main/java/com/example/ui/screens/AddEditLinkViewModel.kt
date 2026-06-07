@@ -19,10 +19,13 @@ import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.net.URL
 
+import com.example.utils.AppSettingsManager
+
 class AddEditLinkViewModel(
     private val repository: LinkRepository,
     private val linkId: Int = -1,
-    private val sharedUrl: String? = null
+    private val sharedUrl: String? = null,
+    private val appSettings: AppSettingsManager? = null
 ) : ViewModel() {
 
     private val _url = MutableStateFlow("")
@@ -87,9 +90,56 @@ class AddEditLinkViewModel(
         }
     }
 
+    private var lastAutoAddedTag: Tag? = null
+
+    private fun checkAutoTagging() {
+        val globalEnabled = appSettings?.isAutoTaggingEnabled?.value ?: true
+        if (!globalEnabled) return
+
+        viewModelScope.launch {
+            val urlString = _url.value.trim()
+            if (urlString.isEmpty()) return@launch
+
+            val categoryId = _selectedCategoryId.value
+            if (categoryId != null) {
+                val category = availableCategories.value.find { it.id == categoryId }
+                if (category?.isAutoTaggingEnabled == false) {
+                    return@launch
+                }
+            }
+
+            try {
+                val host = URL(if (!urlString.startsWith("http")) "https://$urlString" else urlString).host.lowercase()
+                val rules = repository.allAutoTagRules.firstOrNull() ?: emptyList()
+                
+                val matchedRule = rules.find { host.contains(it.domain.lowercase()) }
+                if (matchedRule != null) {
+                    val tagName = matchedRule.tagName
+                    var tag = availableTags.value.find { it.name.equals(tagName, ignoreCase = true) }
+                    if (tag == null) {
+                        tag = repository.getTagByName(tagName)
+                        if (tag == null) {
+                            val colors = listOf("#EF5350", "#EC407A", "#AB47BC", "#7E57C2", "#5C6BC0", "#42A5F5", "#26A69A", "#66BB6A", "#FFA726", "#FF7043")
+                            val newTag = Tag(name = tagName, colorHex = colors.random())
+                            val id = repository.insertTag(newTag)
+                            tag = newTag.copy(id = id.toInt())
+                        }
+                    }
+                    if (!_selectedTags.value.contains(tag) && lastAutoAddedTag != tag) {
+                        _selectedTags.value = _selectedTags.value + tag
+                        lastAutoAddedTag = tag
+                    }
+                }
+            } catch (e: Exception) {
+                // Invalid URL
+            }
+        }
+    }
+
     fun onUrlChange(newUrl: String) {
         _url.value = newUrl
         _metadataError.value = null
+        checkAutoTagging()
     }
 
     fun onTitleChange(newTitle: String) {
@@ -102,6 +152,7 @@ class AddEditLinkViewModel(
 
     fun onCategoryChange(categoryId: Int?) {
         _selectedCategoryId.value = categoryId
+        checkAutoTagging()
     }
 
     fun addTag(tag: Tag) {
@@ -244,10 +295,11 @@ class AddEditLinkViewModel(
     class Factory(
         private val repository: LinkRepository,
         private val linkId: Int,
-        private val sharedUrl: String?
+        private val sharedUrl: String?,
+        private val appSettings: AppSettingsManager? = null
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return AddEditLinkViewModel(repository, linkId, sharedUrl) as T
+            return AddEditLinkViewModel(repository, linkId, sharedUrl, appSettings) as T
         }
     }
 }
