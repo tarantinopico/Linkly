@@ -9,6 +9,20 @@ import androidx.room.Relation
 @Entity(
     tableName = "link_tag_cross_ref",
     primaryKeys = ["linkId", "tagId"],
+    foreignKeys = [
+        androidx.room.ForeignKey(
+            entity = Link::class,
+            parentColumns = ["id"],
+            childColumns = ["linkId"],
+            onDelete = androidx.room.ForeignKey.CASCADE
+        ),
+        androidx.room.ForeignKey(
+            entity = Tag::class,
+            parentColumns = ["id"],
+            childColumns = ["tagId"],
+            onDelete = androidx.room.ForeignKey.CASCADE
+        )
+    ],
     indices = [Index("tagId")]
 )
 data class LinkTagCrossRef(

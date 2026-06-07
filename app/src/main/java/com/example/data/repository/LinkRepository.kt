@@ -15,11 +15,42 @@ class LinkRepository(
     private val categoryDao: CategoryDao,
     private val tagDao: TagDao
 ) {
+    // ---- Backup & Restore ----
+    data class RawBackupData(
+        val categories: List<Category>,
+        val tags: List<Tag>,
+        val links: List<Link>,
+        val crossRefs: List<LinkTagCrossRef>
+    )
+
+    suspend fun exportRawData(): RawBackupData {
+        return RawBackupData(
+            categoryDao.getAllCategoriesList(),
+            tagDao.getAllTagsList(),
+            linkDao.getAllLinksList(),
+            linkDao.getAllCrossRefsList()
+        )
+    }
+
+    suspend fun restoreRawData(data: RawBackupData) {
+        // Obnovení s přeplněním - mažeme a dáváme nové pro zachování ID vazeb
+        linkDao.deleteAllCrossRefs()
+        linkDao.deleteAllLinks()
+        tagDao.deleteAllTags()
+        categoryDao.deleteAllCategories()
+
+        categoryDao.insertCategories(data.categories)
+        tagDao.insertTags(data.tags)
+        linkDao.insertLinks(data.links)
+        linkDao.insertLinkTagCrossRefs(data.crossRefs)
+    }
+
     // Links
     val allLinks: Flow<List<LinkWithTagsAndCategory>> = linkDao.getAllLinks()
 
     fun getLinksByCategory(categoryId: Int) = linkDao.getLinksByCategory(categoryId)
     fun getLinksByTag(tagId: Int) = linkDao.getLinksByTag(tagId)
+    fun getLinkById(linkId: Int) = linkDao.getLinkById(linkId)
 
     suspend fun insertLink(link: Link, tagIds: List<Int> = emptyList()): Int {
         val linkId = linkDao.insertLink(link).toInt()
@@ -51,6 +82,10 @@ class LinkRepository(
     suspend fun insertCategory(category: Category) {
         categoryDao.insertCategory(category)
     }
+
+    suspend fun updateCategory(category: Category) {
+        categoryDao.updateCategory(category)
+    }
     
     suspend fun deleteCategory(category: Category) {
         categoryDao.deleteCategory(category)
@@ -59,8 +94,14 @@ class LinkRepository(
     // Tags
     val allTags: Flow<List<Tag>> = tagDao.getAllTags()
     
-    suspend fun insertTag(tag: Tag) {
-        tagDao.insertTag(tag)
+    suspend fun getTagByName(name: String): Tag? = tagDao.getTagByName(name)
+
+    suspend fun insertTag(tag: Tag): Long {
+        return tagDao.insertTag(tag)
+    }
+
+    suspend fun updateTag(tag: Tag) {
+        tagDao.updateTag(tag)
     }
     
     suspend fun deleteTag(tag: Tag) {

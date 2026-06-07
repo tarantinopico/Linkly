@@ -27,6 +27,28 @@ interface LinkDao {
     @Query("SELECT * FROM links INNER JOIN link_tag_cross_ref ON links.id = link_tag_cross_ref.linkId WHERE tagId = :tagId ORDER BY addedAt DESC")
     fun getLinksByTag(tagId: Int): Flow<List<LinkWithTagsAndCategory>>
 
+    @Transaction
+    @Query("SELECT * FROM links WHERE id = :linkId")
+    fun getLinkById(linkId: Int): Flow<LinkWithTagsAndCategory?>
+
+    @Query("SELECT * FROM links")
+    suspend fun getAllLinksList(): List<Link>
+
+    @Query("SELECT * FROM link_tag_cross_ref")
+    suspend fun getAllCrossRefsList(): List<LinkTagCrossRef>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLinks(links: List<Link>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLinkTagCrossRefs(crossRefs: List<LinkTagCrossRef>)
+
+    @Query("DELETE FROM links")
+    suspend fun deleteAllLinks()
+
+    @Query("DELETE FROM link_tag_cross_ref")
+    suspend fun deleteAllCrossRefs()
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLink(link: Link): Long
 

@@ -13,17 +13,25 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -34,42 +42,112 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 import com.example.LinklyApplication
+import com.example.data.local.entity.Link
 import com.example.data.local.entity.LinkWithTagsAndCategory
 import com.example.ui.utils.toColor
+import com.example.ui.utils.toIcon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onNavigateToAddEdit: (Int?) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToDetail: (Int) -> Unit
+) {
     val application = LocalContext.current.applicationContext as LinklyApplication
     val viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application.repository))
 
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val links by viewModel.links.collectAsStateWithLifecycle()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
+
+    var isSearchActive by remember { mutableStateOf(false) }
+    var isSortMenuExpanded by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var linkToDelete by remember { mutableStateOf<Link?>(null) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Linkly", style = MaterialTheme.typography.titleLarge) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                ),
-                actions = {
-                    IconButton(onClick = { /* TODO Settings */ }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
+            if (isSearchActive) {
+                TopAppBar(
+                    title = {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.onSearchQueryChanged(it) },
+                            placeholder = { Text("Hledat...") },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { 
+                            isSearchActive = false
+                            viewModel.onSearchQueryChanged("")
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Zavřít hledání")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground
+                    )
+                )
+            } else {
+                TopAppBar(
+                    title = { Text("Linkly", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.85f),
+                        titleContentColor = MaterialTheme.colorScheme.onBackground
+                    ),
+                    actions = {
+                        IconButton(onClick = { isSearchActive = true }) {
+                            Icon(Icons.Default.Search, contentDescription = "Search")
+                        }
+                        Box {
+                            IconButton(onClick = { isSortMenuExpanded = true }) {
+                                Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
+                            }
+                            DropdownMenu(
+                                expanded = isSortMenuExpanded,
+                                onDismissRequest = { isSortMenuExpanded = false }
+                            ) {
+                                SortOrder.values().forEach { order ->
+                                    DropdownMenuItem(
+                                        text = { Text(order.displayName) },
+                                        onClick = {
+                                            viewModel.onSortOrderChanged(order)
+                                            isSortMenuExpanded = false
+                                        },
+                                        trailingIcon = if (sortOrder == order) {
+                                            { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(0.dp)) } // Just to align
+                                        } else null
+                                    )
+                                }
+                            }
+                        }
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        }
                     }
-                    IconButton(onClick = { /* TODO Settings */ }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                }
-            )
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* TODO Navigate to add screen */ },
+                onClick = { onNavigateToAddEdit(null) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -125,32 +203,125 @@ fun HomeScreen() {
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(links, key = { it.link.id }) { linkWithDetails ->
                         var isVisible by remember { mutableStateOf(false) }
-                        LaunchedEffect(Unit) {
+                        LaunchedEffect(linkWithDetails.link.id) {
                             isVisible = true
                         }
+                        
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            positionalThreshold = { it * 0.4f },
+                            confirmValueChange = { dismissValue ->
+                                when (dismissValue) {
+                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                        onNavigateToAddEdit(linkWithDetails.link.id)
+                                        false
+                                    }
+                                    SwipeToDismissBoxValue.EndToStart -> {
+                                        linkToDelete = linkWithDetails.link
+                                        false
+                                    }
+                                    else -> false
+                                }
+                            }
+                        )
+
                         AnimatedVisibility(
                             visible = isVisible,
                             enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 2 }
                         ) {
-                            LinkCard(linkWithDetails = linkWithDetails)
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                backgroundContent = {
+                                    val color = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                        else -> Color.Transparent
+                                    }
+                                    val alignment = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                        else -> Alignment.Center
+                                    }
+                                    val icon = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Edit
+                                        SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
+                                        else -> null
+                                    }
+                                    val iconColor = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.onPrimaryContainer
+                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.onErrorContainer
+                                        else -> Color.Transparent
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(color)
+                                            .padding(horizontal = 24.dp),
+                                        contentAlignment = alignment
+                                    ) {
+                                        if (icon != null) {
+                                            Icon(icon, contentDescription = null, tint = iconColor)
+                                        }
+                                    }
+                                },
+                                content = {
+                                    LinkCard(
+                                        linkWithDetails = linkWithDetails,
+                                        onEditClick = { onNavigateToAddEdit(linkWithDetails.link.id) },
+                                        onClick = { onNavigateToDetail(linkWithDetails.link.id) },
+                                        onToggleFavorite = { viewModel.toggleFavorite(linkWithDetails.link) },
+                                        onDeleteClick = { linkToDelete = linkWithDetails.link },
+                                        onShowSnackbar = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
+                                    )
+                                }
+                            )
                         }
                     }
                 }
             }
         }
+        
+        if (linkToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { linkToDelete = null },
+                title = { Text("Smazat odkaz?") },
+                text = { Text("Opravdu chcete tento odkaz trvale smazat?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        linkToDelete?.let { viewModel.deleteLink(it) }
+                        linkToDelete = null
+                    }) {
+                        Text("Smazat", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { linkToDelete = null }) {
+                        Text("Zrušit")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-fun LinkCard(linkWithDetails: LinkWithTagsAndCategory) {
+fun LinkCard(
+    linkWithDetails: LinkWithTagsAndCategory,
+    onEditClick: () -> Unit,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onShowSnackbar: (String) -> Unit
+) {
     val clipboardManager = LocalClipboardManager.current
-    val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
 
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -159,13 +330,7 @@ fun LinkCard(linkWithDetails: LinkWithTagsAndCategory) {
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                try {
-                    uriHandler.openUri(linkWithDetails.link.url)
-                } catch (e: Exception) {
-                    // Handle invalid URI
-                }
-            }
+            .clickable { onClick() }
     ) {
         Column {
             if (!linkWithDetails.link.imageUrl.isNullOrEmpty()) {
@@ -225,15 +390,27 @@ fun LinkCard(linkWithDetails: LinkWithTagsAndCategory) {
                 linkWithDetails.category?.let { category ->
                     Surface(
                         color = category.colorHex.toColor(MaterialTheme.colorScheme.primary).copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(4.dp),
+                        shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        Text(
-                            text = category.name,
-                            color = category.colorHex.toColor(MaterialTheme.colorScheme.primary),
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = category.iconName.toIcon(),
+                                contentDescription = null,
+                                tint = category.colorHex.toColor(MaterialTheme.colorScheme.primary),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = category.name,
+                                color = category.colorHex.toColor(MaterialTheme.colorScheme.primary),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
 
@@ -284,6 +461,7 @@ fun LinkCard(linkWithDetails: LinkWithTagsAndCategory) {
                 ) {
                     IconButton(onClick = {
                         clipboardManager.setText(AnnotatedString(linkWithDetails.link.url))
+                        onShowSnackbar("Zkopírováno do schránky")
                     }) {
                         Icon(
                             Icons.Default.ContentCopy,
@@ -293,9 +471,10 @@ fun LinkCard(linkWithDetails: LinkWithTagsAndCategory) {
                     }
                     IconButton(onClick = {
                         try {
-                            uriHandler.openUri(linkWithDetails.link.url)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(linkWithDetails.link.url))
+                            context.startActivity(intent)
                         } catch (e: Exception) {
-                            // Handle invalid URI
+                            onShowSnackbar("Nelze otevřít odkaz.")
                         }
                     }) {
                         Icon(
@@ -304,12 +483,51 @@ fun LinkCard(linkWithDetails: LinkWithTagsAndCategory) {
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = { /* TODO Open menu */ }) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "More Actions",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    
+                    Box {
+                        var expanded by remember { mutableStateOf(false) }
+                        IconButton(onClick = { expanded = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "Menu",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(if (linkWithDetails.link.isFavorite) "Odebrat z oblíbených" else "Přidat do oblíbených") },
+                                onClick = {
+                                    expanded = false
+                                    onToggleFavorite()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        if (linkWithDetails.link.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = null,
+                                        tint = if (linkWithDetails.link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Upravit") },
+                                onClick = {
+                                    expanded = false
+                                    onEditClick()
+                                },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Smazat") },
+                                onClick = {
+                                    expanded = false
+                                    onDeleteClick()
+                                },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
+                            )
+                        }
                     }
                 }
             }

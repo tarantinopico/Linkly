@@ -19,7 +19,7 @@ import com.example.data.local.entity.Tag
         Tag::class,
         LinkTagCrossRef::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class LinklyDatabase : RoomDatabase() {
@@ -37,7 +37,9 @@ abstract class LinklyDatabase : RoomDatabase() {
                     context.applicationContext,
                     LinklyDatabase::class.java,
                     "linkly_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }
