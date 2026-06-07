@@ -28,6 +28,11 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
@@ -298,6 +303,7 @@ fun HomeScreen(
                         totalLinksCount = totalLinksCount,
                         favoritesCount = favoritesCount,
                         unreadCount = unreadCount,
+                        categoriesCount = categoriesWithCount.size,
                         recentLinks = recentLinks,
                         onNavigateToDetail = onNavigateToDetail
                     )
@@ -357,6 +363,14 @@ fun HomeScreen(
             } // Close Column
         }
         if (showQuickAddSheet) {
+            val focusRequester = remember { FocusRequester() }
+            LaunchedEffect(showQuickAddSheet) {
+                if (showQuickAddSheet) {
+                    delay(300) // wait for bottom sheet entry animation
+                    focusRequester.requestFocus()
+                }
+            }
+
             ModalBottomSheet(
                 onDismissRequest = { 
                     showQuickAddSheet = false 
@@ -370,8 +384,10 @@ fun HomeScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
-                        .padding(bottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding())
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp)
+                        .imePadding()
+                        .verticalScroll(rememberScrollState())
                 ) {
                     Text("Rychlé přidání odkazu", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
@@ -380,7 +396,7 @@ fun HomeScreen(
                         value = quickAddUrl,
                         onValueChange = { quickAddUrl = it; quickAddError = null },
                         label = { Text("URL adresa") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                         singleLine = true,
                         isError = quickAddError != null,
                         supportingText = { quickAddError?.let { Text(it) } },
@@ -392,7 +408,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().navigationBarsPadding(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {

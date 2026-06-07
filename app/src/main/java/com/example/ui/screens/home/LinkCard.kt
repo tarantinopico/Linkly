@@ -32,6 +32,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.example.data.local.entity.LinkWithTagsAndCategory
 import com.example.ui.utils.toColor
 import com.example.ui.utils.openUrl
+import com.example.ui.utils.shimmerEffect
 import com.example.LinklyApplication
 
 import com.example.ui.utils.getRelativeTime
@@ -106,11 +107,7 @@ fun LinkCard(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                         loading = {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
+                            Box(modifier = Modifier.fillMaxSize().shimmerEffect())
                         },
                         error = {
                             Icon(

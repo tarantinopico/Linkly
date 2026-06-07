@@ -29,6 +29,7 @@ fun DashboardTab(
     totalLinksCount: Int,
     favoritesCount: Int,
     unreadCount: Int,
+    categoriesCount: Int,
     recentLinks: List<LinkWithTagsAndCategory>,
     onNavigateToDetail: (Int) -> Unit
 ) {
@@ -49,8 +50,7 @@ fun DashboardTab(
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatCard(modifier = Modifier.weight(1f), icon = Icons.Default.MarkEmailUnread, title = "Nepřečtené", count = unreadCount)
-                // Placeholder for Categories count 
-                // StatCard(modifier = Modifier.weight(1f), icon = Icons.Default.Category, title = "Kategorie", count = categoriesCount)
+                StatCard(modifier = Modifier.weight(1f), icon = Icons.Default.Category, title = "Kategorie", count = categoriesCount)
             }
         }
 
@@ -74,7 +74,9 @@ fun DashboardTab(
                     )
                 }
             }
-        } else {
+        } 
+        
+        if (categoriesCount == 0) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
