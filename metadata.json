@@ -1,0 +1,6 @@
+{
+  "name": "Linkly",
+  "description": "Premium native app for locally saving and organizing links with rich metadata, categorized and tagged.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
