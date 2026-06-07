@@ -5,6 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.LinklyApplication
 import com.example.ui.navigation.AppNavigation
 import com.example.ui.theme.LinklyTheme
 
@@ -12,6 +15,9 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
+    
+    val app = application as LinklyApplication
+    val themeManager = app.themeManager
     
     val action = intent?.action
     val type = intent?.type
@@ -25,7 +31,8 @@ class MainActivity : ComponentActivity() {
     }
 
     setContent {
-      LinklyTheme {
+      val accentColor by themeManager.accentColor.collectAsStateWithLifecycle()
+      LinklyTheme(accentColor = accentColor) {
         AppNavigation(sharedUrl = sharedText)
       }
     }

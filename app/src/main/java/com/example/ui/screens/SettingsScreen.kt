@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -9,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Label
@@ -17,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -117,9 +120,42 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
                 )
+                
+                // Color Picker Row
+                val themeManager = application.themeManager
+                val currentAccentColor by themeManager.accentColor.collectAsStateWithLifecycle()
+                val colors = listOf(
+                    androidx.compose.ui.graphics.Color(0xFF1E88E5), // Blue
+                    androidx.compose.ui.graphics.Color(0xFF9D8DF0), // Purple
+                    androidx.compose.ui.graphics.Color(0xFFF06292), // Pink
+                    androidx.compose.ui.graphics.Color(0xFF43A047), // Green
+                    androidx.compose.ui.graphics.Color(0xFFFF9800)  // Orange
+                )
+                
                 ListItem(
-                    headlineContent = { Text("Téma aplikace") },
-                    supportingContent = { Text("Automaticky tmavé prémiové téma", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    headlineContent = { Text("Téma (Akcentní barva)") },
+                    supportingContent = { 
+                        Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            colors.forEach { color ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(androidx.compose.foundation.shape.CircleShape)
+                                        .background(color)
+                                        .clickable { themeManager.setAccentColor(color) }
+                                ) {
+                                    if (currentAccentColor == color) {
+                                        Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = "Vybráno",
+                                            tint = androidx.compose.ui.graphics.Color.White,
+                                            modifier = Modifier.align(Alignment.Center).size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    },
                     leadingContent = { Icon(Icons.Default.ColorLens, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background)
                 )

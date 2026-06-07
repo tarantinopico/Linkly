@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import com.example.data.local.dao.CategoryDao
+import com.example.data.local.dao.CategoryWithCount
 import com.example.data.local.dao.LinkDao
 import com.example.data.local.dao.TagDao
 import com.example.data.local.entity.Category
@@ -47,6 +48,20 @@ class LinkRepository(
 
     // Links
     val allLinks: Flow<List<LinkWithTagsAndCategory>> = linkDao.getAllLinks()
+
+    val categoriesWithCount = categoryDao.getCategoriesWithCount()
+
+    suspend fun updateReadStatus(linkIds: List<Int>, isRead: Boolean) {
+        linkDao.updateReadStatus(linkIds, isRead)
+    }
+
+    suspend fun updateCategoryForLinks(linkIds: List<Int>, categoryId: Int?) {
+        linkDao.updateCategoryForLinks(linkIds, categoryId)
+    }
+
+    suspend fun deleteLinks(linkIds: List<Int>) {
+        linkDao.deleteLinks(linkIds)
+    }
 
     fun getLinksByCategory(categoryId: Int) = linkDao.getLinksByCategory(categoryId)
     fun getLinksByTag(tagId: Int) = linkDao.getLinksByTag(tagId)

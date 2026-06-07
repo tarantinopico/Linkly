@@ -26,5 +26,6 @@ data class Link(
     val categoryId: Int?,
     val addedAt: Long = System.currentTimeMillis(),
     val isFavorite: Boolean = false,
-    val faviconUrl: String? = null
+    val faviconUrl: String? = null,
+    val isRead: Boolean = false
 )

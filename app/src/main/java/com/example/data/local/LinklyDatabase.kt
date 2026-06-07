@@ -19,7 +19,7 @@ import com.example.data.local.entity.Tag
         Tag::class,
         LinkTagCrossRef::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class LinklyDatabase : RoomDatabase() {

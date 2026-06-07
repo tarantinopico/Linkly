@@ -49,6 +49,15 @@ interface LinkDao {
     @Query("DELETE FROM link_tag_cross_ref")
     suspend fun deleteAllCrossRefs()
 
+    @Query("UPDATE links SET isRead = :isRead WHERE id IN (:linkIds)")
+    suspend fun updateReadStatus(linkIds: List<Int>, isRead: Boolean)
+
+    @Query("UPDATE links SET categoryId = :categoryId WHERE id IN (:linkIds)")
+    suspend fun updateCategoryForLinks(linkIds: List<Int>, categoryId: Int?)
+
+    @Query("DELETE FROM links WHERE id IN (:linkIds)")
+    suspend fun deleteLinks(linkIds: List<Int>)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLink(link: Link): Long
 

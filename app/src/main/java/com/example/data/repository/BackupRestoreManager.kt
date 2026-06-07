@@ -62,6 +62,7 @@ class BackupRestoreManager(
                     put("addedAt", l.addedAt)
                     put("isFavorite", l.isFavorite)
                     put("faviconUrl", l.faviconUrl ?: JSONObject.NULL)
+                    put("isRead", l.isRead)
                 }
                 linksArray.put(obj)
             }
@@ -143,7 +144,8 @@ class BackupRestoreManager(
                         categoryId = if (obj.isNull("categoryId")) null else obj.getInt("categoryId"),
                         addedAt = obj.getLong("addedAt"),
                         isFavorite = obj.optBoolean("isFavorite", false),
-                        faviconUrl = if (obj.isNull("faviconUrl")) null else obj.getString("faviconUrl")
+                        faviconUrl = if (obj.isNull("faviconUrl")) null else obj.getString("faviconUrl"),
+                        isRead = obj.optBoolean("isRead", false)
                     ))
                 }
             }
