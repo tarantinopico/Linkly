@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -112,6 +113,30 @@ fun SettingsScreen(
                     modifier = Modifier.clickable { onNavigateToTags() },
                     colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background)
                 )
+                Text(
+                    text = "Obecné",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+                )
+
+                val appSettings = application.appSettings
+                val useInternalBrowser by appSettings.useInternalBrowser.collectAsStateWithLifecycle()
+
+                ListItem(
+                    headlineContent = { Text("Vestavěný prohlížeč") },
+                    supportingContent = { Text("Otevírat odkazy přímo v aplikaci") },
+                    leadingContent = { Icon(Icons.Default.Language, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailingContent = {
+                        Switch(
+                            checked = useInternalBrowser,
+                            onCheckedChange = { appSettings.setUseInternalBrowser(it) }
+                        )
+                    },
+                    modifier = Modifier.clickable { appSettings.setUseInternalBrowser(!useInternalBrowser) },
+                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background)
+                )
+
                 HorizontalDivider()
                 
                 Text(

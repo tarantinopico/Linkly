@@ -60,7 +60,6 @@ fun DashboardTab(
                 Spacer(modifier = Modifier.height(8.dp))
             }
             items(recentLinks) { linkItem ->
-                // Basic representation of recent link, the premium one will be in LinkCard
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).clickable { onNavigateToDetail(linkItem.link.id) },
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -73,6 +72,41 @@ fun DashboardTab(
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
                     )
+                }
+            }
+        } else {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Začněte tím pravým způsobem",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Můžeme vám předpřipravit nejpoužívanější kategorie pro snadnější organizaci.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = { viewModel.createSampleCategories() },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("Vytvořit ukázkové kategorie")
+                        }
+                    }
                 }
             }
         }

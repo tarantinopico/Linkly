@@ -23,6 +23,16 @@ import com.example.ui.screens.home.CategoriesTab
 import com.example.ui.screens.home.DashboardTab
 import com.example.ui.screens.home.LinksTab
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import org.jsoup.Jsoup
+import java.net.URL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -31,7 +41,7 @@ fun HomeScreen(
     onNavigateToDetail: (Int) -> Unit
 ) {
     val application = LocalContext.current.applicationContext as LinklyApplication
-    val viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application.repository))
+    val viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(application.repository, application.appSettings))
 
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val categoriesWithCount by viewModel.categoriesWithCount.collectAsStateWithLifecycle()
@@ -53,7 +63,35 @@ fun HomeScreen(
     var isSortMenuExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    var linkToDelete by remember { mutableStateOf<Link?>(null) }
+
+    var showQuickAddSheet by remember { mutableStateOf(false) }
+    val quickAddSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var quickAddUrl by remember { mutableStateOf("") }
+    var quickAddIsLoading by remember { mutableStateOf(false) }
+    var quickAddTitle by remember { mutableStateOf<String?>(null) }
+    var quickAddError by remember { mutableStateOf<String?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val clipboardUrl by viewModel.clipboardUrl.collectAsStateWithLifecycle()
+    val clipboardManager = LocalClipboardManager.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (clipboardManager.hasText()) {
+                    val text = clipboardManager.getText()?.text
+                    if (text != null && (text.startsWith("http://") || text.startsWith("https://"))) {
+                        viewModel.checkClipboardUrl(text)
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -195,7 +233,7 @@ fun HomeScreen(
         floatingActionButton = {
             if (currentTab != 2) {
                 FloatingActionButton(
-                    onClick = { onNavigateToAddEdit(null) },
+                    onClick = { showQuickAddSheet = true },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
@@ -206,7 +244,48 @@ fun HomeScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            AnimatedContent(
+            Column(modifier = Modifier.fillMaxSize()) {
+                AnimatedVisibility(
+                    visible = clipboardUrl != null,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    clipboardUrl?.let { url ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Přidat zkopírovaný odkaz?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    Text(url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Row {
+                                    TextButton(onClick = { viewModel.dismissClipboardUrl() }) {
+                                        Text("Ne", color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    }
+                                    Button(
+                                        onClick = {
+                                            viewModel.dismissClipboardUrl()
+                                            // Handle quick add or navigate to AddEdit
+                                            onNavigateToAddEdit(null) // Better to open sheet
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    ) {
+                                        Text("Přidat")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                AnimatedContent(
                 targetState = currentTab,
                 transitionSpec = {
                     (fadeIn(animationSpec = tween(300))).togetherWith(fadeOut(animationSpec = tween(300)))
@@ -250,7 +329,18 @@ fun HomeScreen(
                             onNavigateToDetail = onNavigateToDetail,
                             onNavigateToAddEdit = onNavigateToAddEdit,
                             onToggleFavorite = { viewModel.toggleFavorite(it) },
-                            onDeleteClick = { linkToDelete = it },
+                            onDeleteClick = { 
+                                viewModel.deleteLink(it)
+                                coroutineScope.launch {
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = "Odkaz smazán",
+                                        actionLabel = "Zpět"
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        viewModel.undoDelete()
+                                    }
+                                }
+                            },
                             onShowSnackbar = { msg -> coroutineScope.launch { snackbarHostState.showSnackbar(msg) } }
                         )
                     }
@@ -264,27 +354,86 @@ fun HomeScreen(
                     )
                 }
             }
+            } // Close Column
         }
-        
-        if (linkToDelete != null) {
-            AlertDialog(
-                onDismissRequest = { linkToDelete = null },
-                title = { Text("Smazat odkaz?") },
-                text = { Text("Opravdu chcete tento odkaz trvale smazat?") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        linkToDelete?.let { viewModel.deleteLink(it) }
-                        linkToDelete = null
-                    }) {
-                        Text("Smazat", color = MaterialTheme.colorScheme.error)
-                    }
+        if (showQuickAddSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { 
+                    showQuickAddSheet = false 
+                    quickAddUrl = ""
+                    quickAddError = null
                 },
-                dismissButton = {
-                    TextButton(onClick = { linkToDelete = null }) {
-                        Text("Zrušit")
+                sheetState = quickAddSheetState,
+                containerColor = MaterialTheme.colorScheme.surface,
+                dragHandle = { BottomSheetDefaults.DragHandle() }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .padding(bottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding())
+                ) {
+                    Text("Rychlé přidání odkazu", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedTextField(
+                        value = quickAddUrl,
+                        onValueChange = { quickAddUrl = it; quickAddError = null },
+                        label = { Text("URL adresa") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = quickAddError != null,
+                        supportingText = { quickAddError?.let { Text(it) } },
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onDone = { keyboardController?.hide() }
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { 
+                            showQuickAddSheet = false
+                            onNavigateToAddEdit(null) 
+                        }) {
+                            Text("Více možností")
+                        }
+
+                        Button(
+                            onClick = {
+                                if (quickAddUrl.isBlank()) {
+                                    quickAddError = "Zadejte URL."
+                                    return@Button
+                                }
+                                quickAddIsLoading = true
+                                keyboardController?.hide()
+                                viewModel.quickAddLink(quickAddUrl) { success, msg ->
+                                    quickAddIsLoading = false
+                                    if (success) {
+                                        showQuickAddSheet = false
+                                        quickAddUrl = ""
+                                        coroutineScope.launch { snackbarHostState.showSnackbar("Odkaz přidán") }
+                                    } else {
+                                        quickAddError = msg
+                                    }
+                                }
+                            },
+                            enabled = !quickAddIsLoading
+                        ) {
+                            if (quickAddIsLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary)
+                            } else {
+                                Text("Uložit")
+                            }
+                        }
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-            )
+            }
         }
     }
 }

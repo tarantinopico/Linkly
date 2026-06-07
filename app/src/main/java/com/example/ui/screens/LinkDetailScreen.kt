@@ -36,6 +36,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import com.example.ui.utils.openUrl
+import androidx.compose.runtime.collectAsState
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LinkDetailScreen(
@@ -44,6 +47,7 @@ fun LinkDetailScreen(
     onNavigateToEdit: (Int) -> Unit
 ) {
     val application = LocalContext.current.applicationContext as LinklyApplication
+    val useInternalBrowser = application.appSettings.useInternalBrowser.collectAsState(initial = true).value
     val viewModel: LinkDetailViewModel = viewModel(
         factory = LinkDetailViewModel.Factory(application.repository, linkId)
     )
@@ -163,14 +167,7 @@ fun LinkDetailScreen(
                     ) {
                         Button(
                             onClick = {
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(detail.link.url))
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar("Nelze otevřít odkaz.")
-                                    }
-                                }
+                                openUrl(context, detail.link.url, useInternalBrowser)
                             },
                             modifier = Modifier.weight(1f)
                         ) {

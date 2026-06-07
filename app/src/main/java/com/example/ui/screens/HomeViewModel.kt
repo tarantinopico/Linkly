@@ -15,7 +15,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import com.example.utils.AppSettingsManager
+import org.jsoup.Jsoup
+import java.net.URL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 enum class SortOrder(val displayName: String) { 
     NEWEST("Nejnovější"), 
@@ -23,7 +29,10 @@ enum class SortOrder(val displayName: String) {
     NAME_AZ("Podle názvu (A-Z)") 
 }
 
-class HomeViewModel(private val repository: LinkRepository) : ViewModel() {
+class HomeViewModel(
+    private val repository: LinkRepository,
+    private val appSettings: AppSettingsManager? = null
+) : ViewModel() {
 
     private val _selectedCategoryId = MutableStateFlow<Int?>(null)
     val selectedCategoryId: StateFlow<Int?> = _selectedCategoryId.asStateFlow()
@@ -31,7 +40,11 @@ class HomeViewModel(private val repository: LinkRepository) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _sortOrder = MutableStateFlow(SortOrder.NEWEST)
+    private val _sortOrder = MutableStateFlow(
+        try {
+            SortOrder.valueOf(appSettings?.lastSortOrder?.value ?: "NEWEST")
+        } catch (e: Exception) { SortOrder.NEWEST }
+    )
     val sortOrder: StateFlow<SortOrder> = _sortOrder.asStateFlow()
 
     private val _showUnreadOnly = MutableStateFlow(false)
@@ -146,6 +159,7 @@ class HomeViewModel(private val repository: LinkRepository) : ViewModel() {
 
     fun onSortOrderChanged(order: SortOrder) {
         _sortOrder.value = order
+        appSettings?.setLastSortOrder(order.name)
     }
 
     fun onShowUnreadOnlyChanged(show: Boolean) {
@@ -164,17 +178,125 @@ class HomeViewModel(private val repository: LinkRepository) : ViewModel() {
         }
     }
 
+    private var recentlyDeletedLink: Link? = null
+    private var recentlyDeletedTags: List<Int> = emptyList()
+
     fun deleteLink(link: Link) {
         viewModelScope.launch {
+            // First find from current state if available, instead of collecting
+            val tags = links.value.find { it.link.id == link.id }
+            recentlyDeletedTags = tags?.tags?.map { it.id } ?: emptyList()
+            recentlyDeletedLink = link
             repository.deleteLink(link)
         }
     }
 
-    class Factory(private val repository: LinkRepository) : ViewModelProvider.Factory {
+    fun undoDelete() {
+        val linkToRestore = recentlyDeletedLink ?: return
+        viewModelScope.launch {
+            repository.insertLink(linkToRestore.copy(id = 0), recentlyDeletedTags)
+            recentlyDeletedLink = null
+            recentlyDeletedTags = emptyList()
+        }
+    }
+
+    private val _clipboardUrl = MutableStateFlow<String?>(null)
+    val clipboardUrl: StateFlow<String?> = _clipboardUrl.asStateFlow()
+
+    fun checkClipboardUrl(url: String) {
+        // Fetch tags before deleting or something
+        viewModelScope.launch {
+            // First check if it's already in the state
+            val exists = links.value.any { it.link.url == url }
+            if (!exists) {
+                _clipboardUrl.value = url
+            } else {
+                _clipboardUrl.value = null
+            }
+        }
+    }
+
+    fun dismissClipboardUrl() {
+        _clipboardUrl.value = null
+    }
+
+    fun createSampleCategories() {
+        viewModelScope.launch {
+            val samples = listOf(
+                Category(name = "Články", colorHex = "#42A5F5", iconName = "Article", sortOrder = 0),
+                Category(name = "Videa", colorHex = "#EF5350", iconName = "VideoLibrary", sortOrder = 1),
+                Category(name = "Zajímavosti", colorHex = "#66BB6A", iconName = "Lightbulb", sortOrder = 2),
+                Category(name = "Práce", colorHex = "#AB47BC", iconName = "Work", sortOrder = 3)
+            )
+            samples.forEach {
+                repository.insertCategory(it)
+            }
+        }
+    }
+
+    fun quickAddLink(url: String, onResult: (Boolean, String?) -> Unit) {
+        val validUrl = if (!url.startsWith("http://") && !url.startsWith("https://")) "https://$url" else url
+
+        viewModelScope.launch {
+            try {
+                // Check if already exists
+                val all = links.value.map { it.link }
+                if (all.any { it.url == validUrl }) {
+                    onResult(false, "Odkaz již existuje v knihovně.")
+                    return@launch
+                }
+
+                val result = withContext(Dispatchers.IO) {
+                    URL(validUrl).toURI()
+                    val document = Jsoup.connect(validUrl)
+                        .userAgent("Mozilla/5.0")
+                        .timeout(10000)
+                        .followRedirects(true)
+                        .get()
+
+                    var title = document.select("meta[property=og:title]").attr("content")
+                    if (title.isEmpty()) title = document.title()
+
+                    var image = document.select("meta[property=og:image]").attr("content")
+                    if (image.isEmpty()) image = document.select("img").firstOrNull()?.attr("src") ?: ""
+                    if (image.isNotEmpty() && !image.startsWith("http")) {
+                        val urlObj = URL(validUrl)
+                        image = if (image.startsWith("/")) "${urlObj.protocol}://${urlObj.host}$image" else "${urlObj.protocol}://${urlObj.host}/$image"
+                    }
+
+                    var favicon = document.select("link[rel~=(?i)^(shortcut icon|icon)$]").attr("href")
+                    if (favicon.isNotEmpty() && !favicon.startsWith("http")) {
+                        val urlObj = URL(validUrl)
+                        favicon = if (favicon.startsWith("/")) "${urlObj.protocol}://${urlObj.host}$favicon" else "${urlObj.protocol}://${urlObj.host}/$favicon"
+                    }
+
+                    Link(
+                        url = validUrl,
+                        title = title,
+                        imageUrl = image,
+                        faviconUrl = favicon,
+                        notes = "",
+                        isFavorite = false,
+                        categoryId = null
+                    )
+                }
+
+                repository.insertLink(result)
+                onResult(true, null)
+            } catch (e: Exception) {
+                onResult(false, "Přidání selhalo: ${e.message}")
+            }
+        }
+    }
+
+    class Factory(
+        private val repository: LinkRepository,
+        private val appSettings: AppSettingsManager? = null
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return HomeViewModel(repository) as T
+                return HomeViewModel(repository, appSettings) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

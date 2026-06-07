@@ -31,6 +31,11 @@ import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.example.data.local.entity.LinkWithTagsAndCategory
 import com.example.ui.utils.toColor
+import com.example.ui.utils.openUrl
+import com.example.LinklyApplication
+
+import com.example.ui.utils.getRelativeTime
+import java.net.URL
 
 @Composable
 fun LinkCard(
@@ -47,6 +52,7 @@ fun LinkCard(
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val useInternalBrowser = (context.applicationContext as LinklyApplication).appSettings.useInternalBrowser.collectAsState(initial = true).value
     val haptic = LocalHapticFeedback.current
 
     val containerColor by animateColorAsState(
@@ -192,6 +198,14 @@ fun LinkCard(
                             )
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    Text(
+                        text = getRelativeTime(linkWithDetails.link.addedAt),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -242,12 +256,7 @@ fun LinkCard(
                                 text = { Text("Otevřít") },
                                 onClick = {
                                     expanded = false
-                                    try {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(linkWithDetails.link.url))
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        onShowSnackbar("Nelze otevřít odkaz.")
-                                    }
+                                    openUrl(context, linkWithDetails.link.url, useInternalBrowser)
                                 },
                                 leadingIcon = { Icon(Icons.Default.OpenInBrowser, contentDescription = null) }
                             )

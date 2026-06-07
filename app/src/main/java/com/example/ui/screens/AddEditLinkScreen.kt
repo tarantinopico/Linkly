@@ -33,6 +33,7 @@ import com.example.LinklyApplication
 import com.example.data.local.entity.Category
 import com.example.data.local.entity.Tag
 import com.example.ui.utils.toColor
+import com.example.ui.utils.shimmerEffect
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -121,37 +122,40 @@ fun AddEditLinkScreen(
             )
 
             if (isLoadingMetadata) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
-                }
-            }
-
-            AnimatedVisibility(visible = !imageUrl.isNullOrBlank() || !faviconUrl.isNullOrBlank() || title.isNotBlank()) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(140.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Column {
-                        val imageToLoad = if (!imageUrl.isNullOrBlank()) imageUrl else faviconUrl
-                        if (!imageToLoad.isNullOrBlank()) {
-                            SubcomposeAsyncImage(
-                                model = imageToLoad,
-                                contentDescription = "Live Preview",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(140.dp)
-                                    .background(MaterialTheme.colorScheme.surface)
-                            )
-                        }
-                        if (title.isNotBlank()) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(16.dp),
-                                maxLines = 2
-                            )
+                    Box(modifier = Modifier.fillMaxSize().shimmerEffect())
+                }
+            } else {
+                AnimatedVisibility(visible = !imageUrl.isNullOrBlank() || !faviconUrl.isNullOrBlank() || title.isNotBlank()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column {
+                            val imageToLoad = if (!imageUrl.isNullOrBlank()) imageUrl else faviconUrl
+                            if (!imageToLoad.isNullOrBlank()) {
+                                SubcomposeAsyncImage(
+                                    model = imageToLoad,
+                                    contentDescription = "Live Preview",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(140.dp)
+                                        .background(MaterialTheme.colorScheme.surface)
+                                )
+                            }
+                            if (title.isNotBlank()) {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(16.dp),
+                                    maxLines = 2
+                                )
+                            }
                         }
                     }
                 }
