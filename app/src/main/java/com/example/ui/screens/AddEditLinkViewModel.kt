@@ -34,6 +34,9 @@ class AddEditLinkViewModel(
     private val _imageUrl = MutableStateFlow<String?>("")
     val imageUrl: StateFlow<String?> = _imageUrl.asStateFlow()
 
+    private val _faviconUrl = MutableStateFlow<String?>("")
+    val faviconUrl: StateFlow<String?> = _faviconUrl.asStateFlow()
+
     private val _notes = MutableStateFlow("")
     val notes: StateFlow<String> = _notes.asStateFlow()
 
@@ -72,6 +75,7 @@ class AddEditLinkViewModel(
                     _url.value = it.link.url
                     _title.value = it.link.title
                     _imageUrl.value = it.link.imageUrl
+                    _faviconUrl.value = it.link.faviconUrl
                     _notes.value = it.link.notes
                     _selectedCategoryId.value = it.link.categoryId
                     _selectedTags.value = it.tags
@@ -152,24 +156,55 @@ class AddEditLinkViewModel(
             try {
                 withContext(Dispatchers.IO) {
                     URL(validUrl).toURI() // check syntax
-                    val document = Jsoup.connect(validUrl).timeout(5000).get()
+                    val document = Jsoup.connect(validUrl)
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+                        .timeout(15000)
+                        .followRedirects(true)
+                        .ignoreContentType(true)
+                        .get()
 
-                    val ogTitle = document.select("meta[property=og:title]").attr("content")
-                    val title = ogTitle.takeIf { it.isNotEmpty() } ?: document.title()
+                    var title = document.select("meta[property=og:title]").attr("content")
+                    if (title.isEmpty()) title = document.select("meta[name=twitter:title]").attr("content")
+                    if (title.isEmpty()) title = document.title()
+                    if (title.isEmpty()) {
+                        val host = URL(validUrl).host
+                        title = if (host.startsWith("www.")) host.substring(4) else host
+                    }
 
-                    val ogImage = document.select("meta[property=og:image]").attr("content")
-                    val image = ogImage.takeIf { it.isNotEmpty() } ?: document.select("link[rel=apple-touch-icon]").attr("href")
+                    var image = document.select("meta[property=og:image]").attr("content")
+                    if (image.isEmpty()) image = document.select("meta[name=twitter:image]").attr("content")
+                    if (image.isEmpty()) {
+                        val imgAttr = document.select("img").firstOrNull()?.attr("src") ?: ""
+                        image = imgAttr
+                    }
+                    if (image.isNotEmpty() && !image.startsWith("http")) {
+                        val urlObj = URL(validUrl)
+                        image = if (image.startsWith("/")) {
+                            "${urlObj.protocol}://${urlObj.host}$image"
+                        } else {
+                            "${urlObj.protocol}://${urlObj.host}/$image"
+                        }
+                    }
+
+                    var favicon = document.select("link[rel~=(?i)^(shortcut icon|icon)$]").attr("href")
+                    if (favicon.isEmpty()) favicon = document.select("link[rel=apple-touch-icon]").attr("href")
+                    if (favicon.isNotEmpty() && !favicon.startsWith("http")) {
+                        val urlObj = URL(validUrl)
+                        favicon = if (favicon.startsWith("/")) {
+                            "${urlObj.protocol}://${urlObj.host}$favicon"
+                        } else {
+                            "${urlObj.protocol}://${urlObj.host}/$favicon"
+                        }
+                    }
+                    if (favicon.isEmpty()) {
+                        val urlObj = URL(validUrl)
+                        favicon = "https://www.google.com/s2/favicons?sz=128&domain=${urlObj.host}"
+                    }
 
                     withContext(Dispatchers.Main) {
-                        if (title.isNotEmpty()) _title.value = title
-                        if (image.isNotEmpty()) {
-                            _imageUrl.value = if (image.startsWith("/")) {
-                                val urlObj = URL(validUrl)
-                                "${urlObj.protocol}://${urlObj.host}$image"
-                            } else {
-                                image
-                            }
-                        }
+                        if (_title.value.isBlank()) _title.value = title
+                        if (_imageUrl.value.isNullOrBlank() && image.isNotEmpty()) _imageUrl.value = image
+                        if (_faviconUrl.value.isNullOrBlank() && favicon.isNotEmpty()) _faviconUrl.value = favicon
                     }
                 }
             } catch (e: Exception) {
@@ -189,6 +224,7 @@ class AddEditLinkViewModel(
                 url = _url.value.trim(),
                 title = _title.value.trim(),
                 imageUrl = _imageUrl.value,
+                faviconUrl = _faviconUrl.value,
                 notes = _notes.value.trim(),
                 categoryId = _selectedCategoryId.value
             )

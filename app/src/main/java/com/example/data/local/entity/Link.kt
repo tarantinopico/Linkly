@@ -25,5 +25,6 @@ data class Link(
     val notes: String,
     val categoryId: Int?,
     val addedAt: Long = System.currentTimeMillis(),
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val faviconUrl: String? = null
 )

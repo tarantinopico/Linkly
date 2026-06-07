@@ -49,6 +49,7 @@ fun AddEditLinkScreen(
     val url by viewModel.url.collectAsStateWithLifecycle()
     val title by viewModel.title.collectAsStateWithLifecycle()
     val imageUrl by viewModel.imageUrl.collectAsStateWithLifecycle()
+    val faviconUrl by viewModel.faviconUrl.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val selectedTags by viewModel.selectedTags.collectAsStateWithLifecycle()
@@ -125,15 +126,16 @@ fun AddEditLinkScreen(
                 }
             }
 
-            AnimatedVisibility(visible = !imageUrl.isNullOrBlank() || title.isNotBlank()) {
+            AnimatedVisibility(visible = !imageUrl.isNullOrBlank() || !faviconUrl.isNullOrBlank() || title.isNotBlank()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Column {
-                        if (!imageUrl.isNullOrBlank()) {
+                        val imageToLoad = if (!imageUrl.isNullOrBlank()) imageUrl else faviconUrl
+                        if (!imageToLoad.isNullOrBlank()) {
                             SubcomposeAsyncImage(
-                                model = imageUrl,
+                                model = imageToLoad,
                                 contentDescription = "Live Preview",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier

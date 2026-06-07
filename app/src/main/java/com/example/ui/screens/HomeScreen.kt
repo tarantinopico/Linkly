@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -205,7 +207,7 @@ fun HomeScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(links, key = { it.link.id }) { linkWithDetails ->
                         var isVisible by remember { mutableStateOf(false) }
@@ -332,88 +334,57 @@ fun LinkCard(
             .fillMaxWidth()
             .clickable { onClick() }
     ) {
-        Column {
-            if (!linkWithDetails.link.imageUrl.isNullOrEmpty()) {
-                coil.compose.SubcomposeAsyncImage(
-                    model = linkWithDetails.link.imageUrl,
-                    contentDescription = "Link Image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .background(MaterialTheme.colorScheme.surface),
-                    loading = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surface),
+                contentAlignment = Alignment.Center
+            ) {
+                val imageUrl = linkWithDetails.link.imageUrl
+                val faviconUrl = linkWithDetails.link.faviconUrl
+                val imageToLoad = if (!imageUrl.isNullOrEmpty()) imageUrl else faviconUrl
+                if (!imageToLoad.isNullOrEmpty()) {
+                    coil.compose.SubcomposeAsyncImage(
+                        model = imageToLoad,
+                        contentDescription = "Link Image",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
                             CircularProgressIndicator(
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
-                        }
-                    },
-                    error = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        },
+                        error = {
                             Icon(
-                                imageVector = Icons.Default.OpenInBrowser,
-                                contentDescription = "Image Error",
+                                imageVector = Icons.Default.Language,
+                                contentDescription = "Error",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .background(MaterialTheme.colorScheme.surface),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No Image",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Language,
+                        contentDescription = "Placeholder",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Column(modifier = Modifier.padding(16.dp)) {
-                linkWithDetails.category?.let { category ->
-                    Surface(
-                        color = category.colorHex.toColor(MaterialTheme.colorScheme.primary).copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = category.iconName.toIcon(),
-                                contentDescription = null,
-                                tint = category.colorHex.toColor(MaterialTheme.colorScheme.primary),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = category.name,
-                                color = category.colorHex.toColor(MaterialTheme.colorScheme.primary),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
+            Spacer(modifier = Modifier.width(16.dp))
 
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = linkWithDetails.link.title.takeIf { it.isNotEmpty() } ?: linkWithDetails.link.url,
                     style = MaterialTheme.typography.titleMedium,
@@ -423,111 +394,130 @@ fun LinkCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                if (linkWithDetails.tags.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        linkWithDetails.tags.take(3).forEach { tag ->
-                            Surface(
-                                color = MaterialTheme.colorScheme.background,
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "#${tag.name}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = tag.colorHex.toColor(MaterialTheme.colorScheme.onSurfaceVariant),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    linkWithDetails.category?.let { category ->
+                        Surface(
+                            color = category.colorHex.toColor(MaterialTheme.colorScheme.primary).copy(alpha = 0.2f),
+                            shape = CircleShape
+                        ) {
+                            Box(modifier = Modifier.size(10.dp))
                         }
-                        if (linkWithDetails.tags.size > 3) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = category.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = category.colorHex.toColor(MaterialTheme.colorScheme.primary),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    
+                    if (linkWithDetails.tags.isNotEmpty()) {
+                        linkWithDetails.tags.take(2).forEach { tag ->
                             Text(
-                                text = "+${linkWithDetails.tags.size - 3}",
+                                text = "#${tag.name}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.align(Alignment.CenterVertically)
+                                modifier = Modifier.padding(end = 4.dp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (linkWithDetails.tags.size > 2) {
+                            Text(
+                                text = "+${linkWithDetails.tags.size - 2}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    IconButton(onClick = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = {
                         clipboardManager.setText(AnnotatedString(linkWithDetails.link.url))
-                        onShowSnackbar("Zkopírováno do schránky")
-                    }) {
+                        onShowSnackbar("Zkopírováno")
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = "Copy Link",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                
+                Box {
+                    var expanded by remember { mutableStateOf(false) }
+                    IconButton(
+                        onClick = { expanded = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
                         Icon(
-                            Icons.Default.ContentCopy,
-                            contentDescription = "Copy Link",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icons.Default.MoreVert,
+                            contentDescription = "Menu",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(linkWithDetails.link.url))
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            onShowSnackbar("Nelze otevřít odkaz.")
-                        }
-                    }) {
-                        Icon(
-                            Icons.Default.OpenInBrowser,
-                            contentDescription = "Open in Browser",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    Box {
-                        var expanded by remember { mutableStateOf(false) }
-                        IconButton(onClick = { expanded = true }) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = "Menu",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(if (linkWithDetails.link.isFavorite) "Odebrat z oblíbených" else "Přidat do oblíbených") },
-                                onClick = {
-                                    expanded = false
-                                    onToggleFavorite()
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        if (linkWithDetails.link.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = null,
-                                        tint = if (linkWithDetails.link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                    )
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Otevřít") },
+                            onClick = {
+                                expanded = false
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(linkWithDetails.link.url))
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    onShowSnackbar("Nelze otevřít odkaz.")
                                 }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Upravit") },
-                                onClick = {
-                                    expanded = false
-                                    onEditClick()
-                                },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Smazat") },
-                                onClick = {
-                                    expanded = false
-                                    onDeleteClick()
-                                },
-                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
-                            )
-                        }
+                            },
+                            leadingIcon = { Icon(Icons.Default.OpenInBrowser, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (linkWithDetails.link.isFavorite) "Odebrat z oblíbených" else "Přidat do oblíbených") },
+                            onClick = {
+                                expanded = false
+                                onToggleFavorite()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (linkWithDetails.link.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = null,
+                                    tint = if (linkWithDetails.link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Upravit") },
+                            onClick = {
+                                expanded = false
+                                onEditClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Smazat") },
+                            onClick = {
+                                expanded = false
+                                onDeleteClick()
+                            },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
+                        )
                     }
                 }
             }

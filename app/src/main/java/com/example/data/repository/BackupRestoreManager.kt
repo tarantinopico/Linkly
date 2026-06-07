@@ -61,6 +61,7 @@ class BackupRestoreManager(
                     put("categoryId", l.categoryId ?: JSONObject.NULL)
                     put("addedAt", l.addedAt)
                     put("isFavorite", l.isFavorite)
+                    put("faviconUrl", l.faviconUrl ?: JSONObject.NULL)
                 }
                 linksArray.put(obj)
             }
@@ -141,7 +142,8 @@ class BackupRestoreManager(
                         notes = obj.optString("notes"),
                         categoryId = if (obj.isNull("categoryId")) null else obj.getInt("categoryId"),
                         addedAt = obj.getLong("addedAt"),
-                        isFavorite = obj.optBoolean("isFavorite", false)
+                        isFavorite = obj.optBoolean("isFavorite", false),
+                        faviconUrl = if (obj.isNull("faviconUrl")) null else obj.getString("faviconUrl")
                     ))
                 }
             }
