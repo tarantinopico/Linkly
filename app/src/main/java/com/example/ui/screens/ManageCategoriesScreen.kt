@@ -17,8 +17,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.LinklyApplication
@@ -26,6 +28,8 @@ import com.example.data.local.entity.Category
 import com.example.ui.utils.availableIcons
 import com.example.ui.utils.toColor
 import com.example.ui.utils.toIcon
+import com.example.ui.utils.premiumBackground
+import com.example.ui.utils.premiumCardStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,14 +49,16 @@ fun ManageCategoriesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Správa kategorií") },
+                title = { Text("Správa kategorií", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.85f)
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    titleContentColor = com.example.ui.theme.TextPrimary,
+                    navigationIconContentColor = com.example.ui.theme.TextPrimary
                 )
             )
         },
@@ -62,40 +68,50 @@ fun ManageCategoriesScreen(
                     editingCategory = Category(name = "", colorHex = premiumColorsList.first(), iconName = "Folder", sortOrder = categories.size)
                     isEditorOpen = true
                 },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                contentColor = com.example.ui.theme.TextAccent,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp),
+                shape = CircleShape,
+                modifier = Modifier
+                    .background(com.example.ui.theme.AccentGradient, shape = CircleShape)
+                    .shadow(16.dp, CircleShape, spotColor = com.example.ui.theme.MutedPurpleDark)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Nová kategorie", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.Add, contentDescription = "Nová kategorie", tint = androidx.compose.ui.graphics.Color.White)
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        modifier = Modifier.premiumBackground()
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(categories, key = { it.id }) { category ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(8.dp)
+                val catColor = category.colorHex.toColor(com.example.ui.theme.MutedPurple)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .premiumCardStyle(containerColor = com.example.ui.theme.CardSurfaceDark, shadowElevation = 8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp).fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = category.colorHex.toColor().copy(alpha = 0.2f),
-                            modifier = Modifier.size(40.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(catColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = category.iconName.toIcon(),
                                 contentDescription = null,
-                                tint = category.colorHex.toColor(),
-                                modifier = Modifier.padding(8.dp)
+                                tint = catColor,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(16.dp))
@@ -103,16 +119,17 @@ fun ManageCategoriesScreen(
                             text = category.name,
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
+                            fontWeight = FontWeight.SemiBold,
+                            color = com.example.ui.theme.TextPrimary
                         )
                         IconButton(onClick = {
                             editingCategory = category
                             isEditorOpen = true
                         }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Upravit", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.Edit, contentDescription = "Upravit", tint = com.example.ui.theme.TextSecondary)
                         }
                         IconButton(onClick = { categoryToDelete = category }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Smazat", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = "Smazat", tint = androidx.compose.ui.graphics.Color(0xFFFF4D4D))
                         }
                     }
                 }
@@ -137,19 +154,22 @@ fun ManageCategoriesScreen(
         if (categoryToDelete != null) {
             AlertDialog(
                 onDismissRequest = { categoryToDelete = null },
-                title = { Text("Smazat kategorii?") },
+                containerColor = com.example.ui.theme.PremiumBackgroundBottom,
+                titleContentColor = com.example.ui.theme.TextPrimary,
+                textContentColor = com.example.ui.theme.TextSecondary,
+                title = { Text("Smazat kategorii?", fontWeight = FontWeight.Bold) },
                 text = { Text("Opravdu chcete smazat kategorii '${categoryToDelete?.name}'? Všechny odkazy v této kategorii zůstanou uloženy, ale přeřadí se do 'Nezarazeno'.") },
                 confirmButton = {
                     TextButton(onClick = {
                         categoryToDelete?.let { viewModel.deleteCategory(it) }
                         categoryToDelete = null
                     }) {
-                        Text("Smazat", color = MaterialTheme.colorScheme.error)
+                        Text("Smazat", color = androidx.compose.ui.graphics.Color(0xFFFF4D4D))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { categoryToDelete = null }) {
-                        Text("Zrušit")
+                        Text("Zrušit", color = com.example.ui.theme.TextSecondary)
                     }
                 }
             )
@@ -170,7 +190,10 @@ fun CategoryEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (category.id == 0) "Nová kategorie" else "Upravit") },
+        containerColor = com.example.ui.theme.PremiumBackgroundBottom,
+        titleContentColor = com.example.ui.theme.TextPrimary,
+        textContentColor = com.example.ui.theme.TextSecondary,
+        title = { Text(if (category.id == 0) "Nová kategorie" else "Upravit", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
@@ -181,7 +204,7 @@ fun CategoryEditorDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text("Ikona", style = MaterialTheme.typography.labelMedium)
-                IconPickerGrid(selectedIconName = iconName, onIconSelected = { iconName = it })
+                IconPickerGrid(selectedIconName = iconName, onIconSelected = { iconName = it }, colorHex = colorHex)
 
                 Text("Barva", style = MaterialTheme.typography.labelMedium)
                 ColorPickerGrid(selectedColorHex = colorHex, onColorSelected = { colorHex = it })
@@ -192,8 +215,8 @@ fun CategoryEditorDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Auto-tagování podle domény", style = MaterialTheme.typography.bodyMedium)
-                        Text("Přiřadit tagy z odkazů uložených zde.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Auto-tagování", style = MaterialTheme.typography.bodyMedium, color = com.example.ui.theme.TextPrimary)
+                        Text("Přiřadit tagy automaticky.", style = MaterialTheme.typography.bodySmall, color = com.example.ui.theme.TextSecondary)
                     }
                     Switch(
                         checked = isAutoTaggingEnabled,
@@ -201,22 +224,23 @@ fun CategoryEditorDialog(
                     )
                 }
 
-                // Prieview
+                // Preview
                 Surface(
-                    color = colorHex.toColor().copy(alpha = 0.2f),
+                    color = colorHex.toColor().copy(alpha = 0.15f),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(iconName.toIcon(), contentDescription = null, tint = colorHex.toColor(), modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(iconName.toIcon(), contentDescription = null, tint = colorHex.toColor(), modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = name.ifBlank { "Náhled" },
                             color = colorHex.toColor(),
-                            style = MaterialTheme.typography.labelMedium
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -227,12 +251,12 @@ fun CategoryEditorDialog(
                 onClick = { onSave(category.copy(name = name.trim(), colorHex = colorHex, iconName = iconName, isAutoTaggingEnabled = isAutoTaggingEnabled)) },
                 enabled = name.isNotBlank()
             ) {
-                Text("Uložit")
+                Text("Uložit", color = com.example.ui.theme.MutedPurple)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Zrušit")
+                Text("Zrušit", color = com.example.ui.theme.TextSecondary)
             }
         }
     )
@@ -242,7 +266,8 @@ fun CategoryEditorDialog(
 @Composable
 fun IconPickerGrid(
     selectedIconName: String,
-    onIconSelected: (String) -> Unit
+    onIconSelected: (String) -> Unit,
+    colorHex: String
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -250,21 +275,23 @@ fun IconPickerGrid(
         modifier = Modifier.fillMaxWidth()
     ) {
         availableIcons.keys.take(16).forEach { name -> // Limit to 16 for UI space
+            val isSelected = name == selectedIconName
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .background(if (name == selectedIconName) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                    .background(if (isSelected) colorHex.toColor().copy(alpha = 0.2f) else com.example.ui.theme.CardSurfaceDark)
                     .clickable { onIconSelected(name) },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = name.toIcon(),
                     contentDescription = null,
-                    tint = if (name == selectedIconName) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    tint = if (isSelected) colorHex.toColor() else com.example.ui.theme.TextSecondary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
     }
 }
+

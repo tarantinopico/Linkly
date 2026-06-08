@@ -38,6 +38,8 @@ import java.util.Locale
 
 import com.example.ui.utils.openUrl
 import androidx.compose.runtime.collectAsState
+import com.example.ui.utils.premiumBackground
+import com.example.ui.utils.premiumCardStyle
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +66,7 @@ fun LinkDetailScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Detail odkazu") },
+                title = { Text("Detail odkazu", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
@@ -76,7 +78,7 @@ fun LinkDetailScreen(
                             Icon(
                                 imageVector = if (detail.link.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Oblíbené",
-                                tint = if (detail.link.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                tint = if (detail.link.isFavorite) androidx.compose.ui.graphics.Color(0xFFFF4D4D) else com.example.ui.theme.TextPrimary
                             )
                         }
                         IconButton(onClick = { onNavigateToEdit(detail.link.id) }) {
@@ -88,15 +90,19 @@ fun LinkDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.85f)
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    titleContentColor = com.example.ui.theme.TextPrimary,
+                    navigationIconContentColor = com.example.ui.theme.TextPrimary,
+                    actionIconContentColor = com.example.ui.theme.TextPrimary
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        modifier = Modifier.premiumBackground()
     ) { paddingValues ->
         if (linkDetails == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = com.example.ui.theme.MutedPurple)
             }
         } else {
             val detail = linkDetails!!
@@ -107,40 +113,45 @@ fun LinkDetailScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 if (!detail.link.imageUrl.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = detail.link.imageUrl,
-                        contentDescription = "Image",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
+                    Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
+                        AsyncImage(
+                            model = detail.link.imageUrl,
+                            contentDescription = "Image",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Box(modifier = Modifier.fillMaxSize().background(
+                            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                colors = listOf(androidx.compose.ui.graphics.Color.Transparent, com.example.ui.theme.PremiumBackgroundTop),
+                                startY = 100f
+                            )
+                        ))
+                    }
                 }
 
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(24.dp)) {
                     detail.category?.let { category ->
                         Surface(
-                            color = category.colorHex.toColor(MaterialTheme.colorScheme.primary).copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.padding(bottom = 12.dp)
+                            color = category.colorHex.toColor(com.example.ui.theme.MutedPurple).copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.padding(bottom = 16.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = category.iconName.toIcon(),
                                     contentDescription = null,
-                                    tint = category.colorHex.toColor(MaterialTheme.colorScheme.primary),
+                                    tint = category.colorHex.toColor(com.example.ui.theme.MutedPurple),
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = category.name,
-                                    color = category.colorHex.toColor(MaterialTheme.colorScheme.primary),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Medium
+                                    color = category.colorHex.toColor(com.example.ui.theme.MutedPurple),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
@@ -148,32 +159,33 @@ fun LinkDetailScreen(
 
                     Text(
                         text = detail.link.title.takeIf { it.isNotBlank() } ?: detail.link.url,
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        color = com.example.ui.theme.TextPrimary,
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
 
                     Text(
                         text = detail.link.url,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = com.example.ui.theme.MutedPurple,
+                        modifier = Modifier.padding(bottom = 24.dp)
                     )
 
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Button(
                             onClick = {
                                 openUrl(context, detail.link.url, useInternalBrowser)
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.MutedPurple)
                         ) {
-                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Otevřít")
+                            Text("Otevřít", fontWeight = FontWeight.Bold)
                         }
 
                         OutlinedButton(
@@ -183,30 +195,34 @@ fun LinkDetailScreen(
                                     snackbarHostState.showSnackbar("Zkopírováno do schránky")
                                 }
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = com.example.ui.theme.TextPrimary),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.CardBorder)
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Kopírovat")
+                            Text("Kopírovat", fontWeight = FontWeight.Bold)
                         }
                     }
 
                     if (detail.tags.isNotEmpty()) {
-                        Text("Tagy", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Tagy", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = com.example.ui.theme.TextPrimary)
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+                            modifier = Modifier.padding(top = 12.dp, bottom = 24.dp)
                         ) {
                             detail.tags.forEach { tag ->
                                 Surface(
-                                    color = tag.colorHex?.toColor(MaterialTheme.colorScheme.surfaceVariant)?.copy(alpha = 0.2f) ?: MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(4.dp)
+                                    color = tag.colorHex?.toColor(com.example.ui.theme.CardSurfaceDark)?.copy(alpha = 0.2f) ?: com.example.ui.theme.CardSurfaceDark,
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, tag.colorHex?.toColor(com.example.ui.theme.CardBorder)?.copy(alpha=0.3f) ?: com.example.ui.theme.CardBorder)
                                 ) {
                                     Text(
                                         text = "#${tag.name}",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = tag.colorHex?.toColor(MaterialTheme.colorScheme.onSurfaceVariant) ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = tag.colorHex?.toColor(com.example.ui.theme.TextSecondary) ?: com.example.ui.theme.TextSecondary,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        fontWeight = FontWeight.Medium
                                     )
                                 }
                             }
@@ -214,20 +230,27 @@ fun LinkDetailScreen(
                     }
 
                     if (detail.link.notes.isNotBlank()) {
-                        Text("Poznámka", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            text = detail.link.notes,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-                        )
+                        Text("Poznámka", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = com.example.ui.theme.TextPrimary)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp, bottom = 24.dp)
+                                .premiumCardStyle(containerColor = com.example.ui.theme.CardSurfaceLight, shadowElevation = 0.dp)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = detail.link.notes,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = com.example.ui.theme.TextPrimary
+                            )
+                        }
                     }
 
                     val dateString = SimpleDateFormat("d. M. yyyy HH:mm", Locale.getDefault()).format(Date(detail.link.addedAt))
                     Text(
                         text = "Přidáno: $dateString",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = com.example.ui.theme.TextSecondary
                     )
                 }
             }
@@ -236,7 +259,10 @@ fun LinkDetailScreen(
         if (showDeleteDialog && linkDetails != null) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Smazat odkaz?") },
+                containerColor = com.example.ui.theme.PremiumBackgroundBottom,
+                titleContentColor = com.example.ui.theme.TextPrimary,
+                textContentColor = com.example.ui.theme.TextSecondary,
+                title = { Text("Smazat odkaz?", fontWeight = FontWeight.Bold) },
                 text = { Text("Opravdu chcete tento odkaz trvale smazat?") },
                 confirmButton = {
                     TextButton(onClick = {
@@ -244,12 +270,12 @@ fun LinkDetailScreen(
                         showDeleteDialog = false
                         onNavigateBack()
                     }) {
-                        Text("Smazat", color = MaterialTheme.colorScheme.error)
+                        Text("Smazat", color = androidx.compose.ui.graphics.Color(0xFFFF4D4D), fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Zrušit")
+                        Text("Zrušit", color = com.example.ui.theme.TextSecondary)
                     }
                 }
             )

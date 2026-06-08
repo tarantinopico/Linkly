@@ -36,6 +36,7 @@ import com.example.ui.utils.toColor
 import com.example.ui.utils.shimmerEffect
 
 import com.example.ui.utils.premiumBackground
+import com.example.ui.utils.premiumCardStyle
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -101,8 +102,8 @@ fun AddEditLinkScreen(
                 .padding(paddingValues)
                 .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // URL Input
             OutlinedTextField(
@@ -124,21 +125,20 @@ fun AddEditLinkScreen(
                     }
                 },
                 isError = metadataError != null,
-                supportingText = metadataError?.let { { Text(it) } }
+                supportingText = metadataError?.let { { Text(it) } },
+                shape = RoundedCornerShape(12.dp)
             )
 
             if (isLoadingMetadata) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().height(140.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(160.dp).premiumCardStyle(containerColor = com.example.ui.theme.CardSurfaceLight, shadowElevation = 0.dp)
                 ) {
                     Box(modifier = Modifier.fillMaxSize().shimmerEffect())
                 }
             } else {
                 AnimatedVisibility(visible = !imageUrl.isNullOrBlank() || !faviconUrl.isNullOrBlank() || title.isNotBlank()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    Box(
+                        modifier = Modifier.fillMaxWidth().premiumCardStyle(containerColor = com.example.ui.theme.CardSurfaceDark, shadowElevation = 8.dp)
                     ) {
                         Column {
                             val imageToLoad = if (!imageUrl.isNullOrBlank()) imageUrl else faviconUrl
@@ -149,8 +149,8 @@ fun AddEditLinkScreen(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(140.dp)
-                                        .background(MaterialTheme.colorScheme.surface)
+                                        .height(160.dp)
+                                        .background(com.example.ui.theme.CardSurfaceLight)
                                 )
                             }
                             if (title.isNotBlank()) {
@@ -159,6 +159,7 @@ fun AddEditLinkScreen(
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(16.dp),
+                                    color = com.example.ui.theme.TextPrimary,
                                     maxLines = 2
                                 )
                             }
@@ -171,6 +172,7 @@ fun AddEditLinkScreen(
                 value = title,
                 onValueChange = viewModel::onTitleChange,
                 label = { Text("Název odkazu") },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -192,18 +194,21 @@ fun AddEditLinkScreen(
                 value = notes,
                 onValueChange = viewModel::onNotesChange,
                 label = { Text("Poznámka") },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 100.dp),
+                    .heightIn(min = 120.dp),
                 maxLines = 5
             )
             
             Button(
                 onClick = { viewModel.saveLink() },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                enabled = url.isNotBlank()
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 40.dp).height(56.dp),
+                enabled = url.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = com.example.ui.theme.MutedPurple),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Text(if (linkId == -1) "Uložit odkaz" else "Uložit změny", modifier = Modifier.padding(vertical = 8.dp))
+                Text(if (linkId == -1) "Uložit odkaz" else "Uložit změny", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -229,6 +234,7 @@ fun CategoryDropdown(
             readOnly = true,
             label = { Text("Kategorie") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            shape = RoundedCornerShape(12.dp),
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
@@ -236,10 +242,11 @@ fun CategoryDropdown(
         )
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(com.example.ui.theme.CardSurfaceLight)
         ) {
             DropdownMenuItem(
-                text = { Text("Žádná") },
+                text = { Text("Žádná", color = com.example.ui.theme.TextPrimary) },
                 onClick = {
                     onSelected(null)
                     expanded = false
@@ -247,9 +254,9 @@ fun CategoryDropdown(
             )
             categories.forEach { category ->
                 DropdownMenuItem(
-                    text = { Text(category.name) },
+                    text = { Text(category.name, color = com.example.ui.theme.TextPrimary) },
                     leadingIcon = {
-                        Box(modifier = Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(category.colorHex.toColor()))
+                        Box(modifier = Modifier.size(20.dp).clip(RoundedCornerShape(6.dp)).background(category.colorHex.toColor()))
                     },
                     onClick = {
                         onSelected(category.id)
@@ -272,8 +279,8 @@ fun TagsInputSection(
 ) {
     var newTagText by remember { mutableStateOf("") }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Tagy", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Tagy", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = com.example.ui.theme.TextPrimary)
 
         if (selectedTags.isNotEmpty()) {
             FlowRow(
@@ -284,11 +291,15 @@ fun TagsInputSection(
                     InputChip(
                         selected = true,
                         onClick = { onRemoveTag(tag) },
-                        label = { Text(tag.name) },
+                        label = { Text(tag.name, fontWeight = FontWeight.Medium) },
                         trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(16.dp)) },
                         colors = InputChipDefaults.inputChipColors(
-                            selectedContainerColor = tag.colorHex?.toColor()?.copy(alpha = 0.2f) ?: MaterialTheme.colorScheme.surfaceVariant,
-                            selectedLabelColor = tag.colorHex?.toColor() ?: MaterialTheme.colorScheme.onSurfaceVariant
+                            selectedContainerColor = tag.colorHex?.toColor()?.copy(alpha = 0.2f) ?: com.example.ui.theme.CardSurfaceDark,
+                            selectedLabelColor = tag.colorHex?.toColor() ?: com.example.ui.theme.TextPrimary
+                        ),
+                        border = InputChipDefaults.inputChipBorder(
+                            borderColor = tag.colorHex?.toColor()?.copy(alpha=0.3f) ?: com.example.ui.theme.CardBorder,
+                            enabled = true, selected = true
                         )
                     )
                 }
@@ -309,6 +320,7 @@ fun TagsInputSection(
                     Icon(Icons.Default.Add, contentDescription = "Add Tag")
                 }
             },
+            shape = RoundedCornerShape(12.dp),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
                 onCreateTag(newTagText)
@@ -318,7 +330,7 @@ fun TagsInputSection(
 
         val unselectedTags = availableTags.filter { it !in selectedTags }
         if (unselectedTags.isNotEmpty()) {
-            Text("Dostupné tagy:", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
+            Text("Dostupné tagy:", style = MaterialTheme.typography.labelLarge, color = com.example.ui.theme.TextSecondary, modifier = Modifier.padding(top = 8.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -328,8 +340,12 @@ fun TagsInputSection(
                         onClick = { onAddTag(tag) },
                         label = { Text(tag.name) },
                         colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            labelColor = tag.colorHex?.toColor() ?: MaterialTheme.colorScheme.onSurface
+                            containerColor = com.example.ui.theme.CardSurfaceDark,
+                            labelColor = tag.colorHex?.toColor() ?: com.example.ui.theme.TextPrimary
+                        ),
+                        border = SuggestionChipDefaults.suggestionChipBorder(
+                            enabled = true,
+                            borderColor = tag.colorHex?.toColor()?.copy(alpha=0.3f) ?: com.example.ui.theme.CardBorder
                         )
                     )
                 }

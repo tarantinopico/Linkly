@@ -17,13 +17,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.LinklyApplication
 import com.example.data.local.entity.Tag
 import com.example.ui.utils.toColor
+import com.example.ui.utils.premiumBackground
+import com.example.ui.utils.premiumCardStyle
 
 val premiumColorsList = listOf(
     "#EF5350", "#EC407A", "#AB47BC", "#7E57C2", 
@@ -49,14 +53,16 @@ fun ManageTagsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Správa tagů") },
+                title = { Text("Správa tagů", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zpět")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.85f)
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    titleContentColor = com.example.ui.theme.TextPrimary,
+                    navigationIconContentColor = com.example.ui.theme.TextPrimary
                 )
             )
         },
@@ -66,25 +72,32 @@ fun ManageTagsScreen(
                     editingTag = Tag(name = "", colorHex = premiumColorsList.first())
                     isEditorOpen = true
                 },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                contentColor = com.example.ui.theme.TextAccent,
+                elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp),
+                shape = CircleShape,
+                modifier = Modifier
+                    .background(com.example.ui.theme.AccentGradient, shape = CircleShape)
+                    .shadow(16.dp, CircleShape, spotColor = com.example.ui.theme.MutedPurpleDark)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Nový tag", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.Add, contentDescription = "Nový tag", tint = androidx.compose.ui.graphics.Color.White)
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        modifier = Modifier.premiumBackground()
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(tags, key = { it.id }) { tag ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(8.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .premiumCardStyle(containerColor = com.example.ui.theme.CardSurfaceDark, shadowElevation = 8.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
@@ -92,25 +105,26 @@ fun ManageTagsScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(16.dp)
+                                .size(24.dp)
                                 .clip(CircleShape)
-                                .background(tag.colorHex?.toColor() ?: MaterialTheme.colorScheme.primary)
+                                .background(tag.colorHex?.toColor() ?: com.example.ui.theme.MutedPurple)
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
                             text = tag.name,
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
+                            fontWeight = FontWeight.SemiBold,
+                            color = com.example.ui.theme.TextPrimary
                         )
                         IconButton(onClick = {
                             editingTag = tag
                             isEditorOpen = true
                         }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Upravit", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.Edit, contentDescription = "Upravit", tint = com.example.ui.theme.TextSecondary)
                         }
                         IconButton(onClick = { tagToDelete = tag }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Smazat", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.Delete, contentDescription = "Smazat", tint = androidx.compose.ui.graphics.Color(0xFFFF4D4D))
                         }
                     }
                 }
@@ -135,19 +149,22 @@ fun ManageTagsScreen(
         if (tagToDelete != null) {
             AlertDialog(
                 onDismissRequest = { tagToDelete = null },
-                title = { Text("Smazat tag?") },
+                containerColor = com.example.ui.theme.PremiumBackgroundBottom,
+                titleContentColor = com.example.ui.theme.TextPrimary,
+                textContentColor = com.example.ui.theme.TextSecondary,
+                title = { Text("Smazat tag?", fontWeight = FontWeight.Bold) },
                 text = { Text("Opravdu chcete smazat tag '${tagToDelete?.name}'? Odkazy s tímto tagem zůstanou zachovány, pouze přijdou o tento tag.") },
                 confirmButton = {
                     TextButton(onClick = {
                         tagToDelete?.let { viewModel.deleteTag(it) }
                         tagToDelete = null
                     }) {
-                        Text("Smazat", color = MaterialTheme.colorScheme.error)
+                        Text("Smazat", color = androidx.compose.ui.graphics.Color(0xFFFF4D4D))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { tagToDelete = null }) {
-                        Text("Zrušit")
+                        Text("Zrušit", color = com.example.ui.theme.TextSecondary)
                     }
                 }
             )
@@ -166,7 +183,10 @@ fun TagEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (tag.id == 0) "Nový tag" else "Upravit tag") },
+        containerColor = com.example.ui.theme.PremiumBackgroundBottom,
+        titleContentColor = com.example.ui.theme.TextPrimary,
+        textContentColor = com.example.ui.theme.TextSecondary,
+        title = { Text(if (tag.id == 0) "Nový tag" else "Upravit tag", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
@@ -179,17 +199,18 @@ fun TagEditorDialog(
                 Text("Barva", style = MaterialTheme.typography.labelMedium)
                 ColorPickerGrid(selectedColorHex = colorHex, onColorSelected = { colorHex = it })
                 
-                // Prieview
+                // Preview
                 Surface(
-                    color = colorHex.toColor().copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(4.dp),
+                    color = colorHex.toColor().copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Text(
                         text = name.ifBlank { "Náhled tagu" },
                         color = colorHex.toColor(),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -199,12 +220,12 @@ fun TagEditorDialog(
                 onClick = { onSave(tag.copy(name = name.trim(), colorHex = colorHex)) },
                 enabled = name.isNotBlank()
             ) {
-                Text("Uložit")
+                Text("Uložit", color = com.example.ui.theme.MutedPurple)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Zrušit")
+                Text("Zrušit", color = com.example.ui.theme.TextSecondary)
             }
         }
     )
@@ -224,7 +245,7 @@ fun ColorPickerGrid(
         premiumColorsList.forEach { hex ->
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(hex.toColor())
                     .clickable { onColorSelected(hex) },
@@ -235,10 +256,11 @@ fun ColorPickerGrid(
                         modifier = Modifier
                             .size(16.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onPrimary)
+                            .background(androidx.compose.ui.graphics.Color.White)
                     )
                 }
             }
         }
     }
 }
+
